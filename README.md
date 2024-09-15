@@ -1,2 +1,2 @@
 # collect
-Web app top catalog collectibles
+Web app to catalog collectibles
