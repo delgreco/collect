@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Collect</title>
+
+<link href="/link_definer.css" type="text/css" rel="stylesheet">
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+<script>
+
+function editIssue(id) {
+    $('#id').val( id );
+    $('#edit_issue_form').submit();    
+}
+
+</script>
+
+</head>
+<body>
+
+<div style="float: left; width: 50%;">
+
+    <h1 style="margin-top: 0px;">Collect</h1>
+
+    <a href="<TMPL_VAR SCRIPT_NAME>?action=collectionInterface">full index</a> - <a href="?action=editIssue">add comic</a><br>
+    Average Year: <TMPL_VAR AVERAGE_YEAR>; Average Grade: <TMPL_VAR AVERAGE_GRADE>; Total Books: <TMPL_VAR TOTAL_COLLECTION_COUNT>
+</div>
+
+<div style="float: left;">
+<form method="post" action="<TMPL_VAR SCRIPT_NAME>">
+
+    <input type="checkbox" name="ungraded" <TMPL_IF UNGRADED>CHECKED</TMPL_IF>> ungraded &nbsp;&nbsp;    
+
+    <select name="title_id">
+    <option value="">select title...
+    <TMPL_LOOP TITLES>
+        <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR TITLE>
+    </TMPL_LOOP>
+    </select> &nbsp;&nbsp;
+    
+    <select name="year">
+    <option value="">all years...
+    <TMPL_LOOP YEARS>
+        <option value="<TMPL_VAR YEAR>" <TMPL_VAR SELECTED>><TMPL_VAR YEAR>
+    </TMPL_LOOP>
+    </select> &nbsp;&nbsp;
+    
+    <input type="submit" value="Refresh">
+<!-- deemed too embarrassing ;)
+    <input type="checkbox" name="beast_appear" <TMPL_IF BEAST_APPEAR>CHECKED</TMPL_IF>> Beast Appearance &nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="checkbox" name="beast_cover" <TMPL_IF BEAST_COVER>CHECKED</TMPL_IF>> Beast Cover
+-->
+</form>
+</div>
+
+<div style="float: right;">
+    <a href="https://www.mindmined.com"><img src="/images/logo_transparent.gif" border="0"></a>
+</div>
+
+<div style="clear: both;"></div>
+
+
