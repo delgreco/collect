@@ -80,6 +80,37 @@ sub about {
     print $t->output;
 }
 
+=head2 _collapse_series
+
+Given an array of integers, collapse it and return an array with any series represented like MIN-MAX.
+
+=cut
+
+sub _collapse_series {
+    my @arr = @_;
+    my @result;
+    my $start = $arr[0]; # Initialize the start of the first series
+    for ( my $i = 1; $i <= @arr; $i++ ) {
+        if ( $i == @arr || $arr[$i] != $arr[$i-1] + 1 ) {
+            # Finalize the series
+            if ( $start == $arr[$i-1] ) {
+                # Single number, no range
+                push @result, $start;
+            } 
+            elsif ( $arr[$i-1] == $start + 1 ) {
+                # Series of exactly two numbers, do not collapse
+                push @result, $start, $arr[$i-1];
+            }
+            else {
+                # Collapse the series of three or more numbers
+                push @result, "$start-$arr[$i-1]";
+            }
+            $start = $arr[$i]; # Start a new series
+        }
+    }
+    return @result;
+}
+
 =head2 collectionInterface()
 
 Image-less view of all issues in the collection.  This is the easiest view for quickly seeing if a given issue is in the collection.
@@ -129,7 +160,7 @@ sub collectionInterface {
     print $output;
 }
 
-=head deleteIssue
+=head2 deleteIssue
 
 Delete an issue, given its id.
 
@@ -337,6 +368,7 @@ sub mainInterface {
     my @missing;
     if ( $title_id ) {  # only looking for missing if showing a single title
         @missing = findMissing(@numbers);
+        @missing = _collapse_series(@missing);
         $t->param(MISSING => join(", ", @missing));
     }
     if ( ! $year ) {
