@@ -261,7 +261,10 @@ sub mainInterface {
     $title_id = $cgi->param('title_id') unless $title_id;
     my $year=$cgi->param('year');
     $ungraded=$cgi->param('ungraded') unless $ungraded;
-    my $t = HTML::Template->new(filename => 'templates/mainInterface.tmpl');
+    my $t = HTML::Template->new(
+        filename => 'templates/mainInterface.tmpl',
+        die_on_bad_params => 0,
+    );
     my @where_conditions;
     my $limit = 200;
     if ( ! $ungraded ) {

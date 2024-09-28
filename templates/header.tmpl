@@ -7,6 +7,17 @@
 
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 
+<style>
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-rows: 1fr;
+    grid-gap: 20px;
+}
+
+</style>
+
 <script>
 
 function editIssue(id) {

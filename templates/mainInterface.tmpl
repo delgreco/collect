@@ -6,17 +6,17 @@
     <TMPL_IF NO_RESULTS_FOUND><center>no results found for <font color="red"><TMPL_VAR NO_RESULTS_FOUND></font></center><br></TMPL_IF>
     <center>displaying <font color="red"><TMPL_VAR COUNT></font> issues from <font color="red"><TMPL_VAR YEAR></font></center><br>
     <TMPL_IF MISSING><center>missing <font color="red"><TMPL_VAR MISSING></font></center><br></TMPL_IF>
-    <table width="100%" align="center">
+ 
+    <div class="grid">
     <TMPL_LOOP COMICS>
-        <TMPL_IF OPEN_ROW><tr></TMPL_IF>
-        <td align="center" width="16%">
+        <div align="center">
         <a class="type4" href="<TMPL_VAR IMAGE_PAGE_URL>" target="_blank"><img width="159" src="<TMPL_VAR THUMB_URL>" border="0"><br>
         <TMPL_VAR TITLE> #<TMPL_VAR ISSUE_NUM></a>
         <br><TMPL_VAR YEAR>, <TMPL_VAR GRADE_ABBREV> <button onClick="editIssue(<TMPL_VAR ID>);">Edit</button>
-        </td>
-        <TMPL_IF CLOSE_ROW></tr></TMPL_IF>
+        </div>
     </TMPL_LOOP>
-    </table>
+    </div>
+
 <TMPL_ELSE>
     <center><font color="red">No matches</font></center>
 </TMPL_IF>
