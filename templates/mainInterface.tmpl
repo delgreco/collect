@@ -3,14 +3,15 @@
 <TMPL_IF MESSAGE><span style="color: red;"><TMPL_VAR MESSAGE></span></TMPL_IF>
 
 <TMPL_IF COMICS>
-    <TMPL_IF NO_RESULTS_FOUND><center>no results found for <font color="red"><TMPL_VAR NO_RESULTS_FOUND></font></center><br></TMPL_IF>
-    <center>displaying <font color="red"><TMPL_VAR COUNT></font> issues from <font color="red"><TMPL_VAR YEAR></font></center><br>
-    <TMPL_IF MISSING><center>missing <font color="red"><TMPL_VAR MISSING></font></center><br></TMPL_IF>
+    <div align="center" style="font-size: 1.3em;">
+        displaying <font color="red"><TMPL_VAR COUNT></font> issues from <font color="red"><TMPL_VAR YEAR></font><br>
+        <TMPL_IF MISSING><center>missing <font color="red"><TMPL_VAR MISSING></font><br></TMPL_IF>
+    </div> <br>
  
     <div class="grid">
     <TMPL_LOOP COMICS>
         <div align="center">
-        <a class="type4" href="<TMPL_VAR IMAGE_PAGE_URL>" target="_blank"><img width="159" src="<TMPL_VAR THUMB_URL>" border="0"><br>
+        <a class="type4" href="<TMPL_VAR IMAGE_PAGE_URL>" target="_blank"><img width="95%" src="<TMPL_VAR THUMB_URL>" border="0"><br>
         <TMPL_VAR TITLE> #<TMPL_VAR ISSUE_NUM></a>
         <br><TMPL_VAR YEAR>, <TMPL_VAR GRADE_ABBREV> <button onClick="editIssue(<TMPL_VAR ID>);">Edit</button>
         </div>
