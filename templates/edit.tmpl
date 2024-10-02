@@ -3,7 +3,7 @@
 <img align="right" width="159" height="240" src="<TMPL_VAR THUMB_URL>">
 <h1><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Issue</h1>
 
-<form method="post" enctype='multipart/form-data' action="/cgi-bin/private/collect.cgi">
+<form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
 Title:     <select name="title_id">
     <option value="">select title...
@@ -35,7 +35,7 @@ Notes: <input type="text" name="notes" size="125" value="<TMPL_VAR NOTES>"> <br>
 </form>
 
 <br><br><br>
-<form method="post" action="/cgi-bin/private/collect.cgi" onSubmit="return confirm('Really delete this issue?');">
+<form method="post" action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return confirm('Really delete this issue?');">
 <input type="hidden" name="action" value="deleteIssue">
 <input type="hidden" name="id" value="<TMPL_VAR ID>">
 <input type="submit" value="Delete">

@@ -222,6 +222,7 @@ sub editIssue {
     $t->param(IMAGE_PAGE_URL => $issue_ref->{image_page_url});
     $t->param(NOTES => $issue_ref->{notes});
     $t->param(ID => $id);
+    $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     print "Content-type: text/html\n\n";
     print $t->output;
 }
