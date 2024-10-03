@@ -5,12 +5,12 @@
 
 <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
-Title:     <select name="title_id">
-    <option value="">select title...
-    <TMPL_LOOP TITLES>
-        <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR TITLE>
-    </TMPL_LOOP>
-    </select><br><br>
+Title: <select name="title_id">
+<option value="">select title...
+<TMPL_LOOP TITLES>
+    <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR TITLE>
+</TMPL_LOOP>
+</select><br><br>
 
 Issue #: <input type="text" size="6" name="issue_num" value="<TMPL_VAR ISSUE_NUM>"> &nbsp;&nbsp;&nbsp;&nbsp; Year: <input type="text" name="year" value="<TMPL_VAR YEAR>"><br><br>
 
@@ -18,12 +18,12 @@ Image Page URL: <input type="text" size="100" name="image_page_url" value="<TMPL
 
 Thumbnail Image URL: <input type="text" size="100" name="thumb_url" value="<TMPL_VAR THUMB_URL>"><br><br>
 
-Grade:     <select name="grade_id">
-    <option value="">select grade of best copy...
-    <TMPL_LOOP GRADES>
-        <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR CGC_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
-    </TMPL_LOOP>
-    </select><br><br>
+Grade: <select name="grade_id">
+<option value="">select grade of best copy...
+<TMPL_LOOP GRADES>
+    <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR CGC_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
+</TMPL_LOOP>
+</select><br><br>
 
 Cover Image: <input type="file" name="cover"><br><br>
 

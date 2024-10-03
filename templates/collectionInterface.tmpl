@@ -3,10 +3,11 @@
 <TMPL_IF MESSAGE><span style="color: red;"><TMPL_VAR MESSAGE></span></TMPL_IF>
 
 <b><br>
-
+<ul style="line-height: 1.7em;">
 <TMPL_LOOP INDEXED_TITLES>
-    <font size="+1"><a href="<TMPL_VAR SCRIPT_NAME>?title=<TMPL_VAR TITLE>"><TMPL_VAR TITLE></a></font>: <TMPL_LOOP ISSUES><a href="<TMPL_VAR IMAGE_PAGE_URL>"><TMPL_VAR ISSUE_NUM></a>, </TMPL_LOOP><br>
+    <li><a href="<TMPL_VAR SCRIPT_NAME>?title_id=<TMPL_VAR TITLE_ID>"><TMPL_VAR TITLE></a>: <TMPL_LOOP ISSUES><a href="#" onclick="editIssue(<TMPL_VAR ID>);"><TMPL_VAR ISSUE_NUM></a>, </TMPL_LOOP></li>
 </TMPL_LOOP>
+</ul>
 
 <br>
 <TMPL_INCLUDE NAME="footer.tmpl">

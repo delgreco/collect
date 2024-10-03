@@ -129,19 +129,24 @@ sub collectionInterface {
     while (my ($title, $title_id) = $sth->fetchrow_array()) {
         my %row;
         $row{TITLE} = $title;
+        $row{TITLE_ID} = $title_id;
+        # NOTE: speed this up with a single SQL query, no inner loop
         my $select = <<~"SQL";
-        SELECT issue_num, image_page_url FROM comics WHERE title_id = ? ORDER BY issue_num
+        SELECT id, issue_num, image_page_url 
+        FROM comics WHERE title_id = ? ORDER BY issue_num
         SQL
         my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
         $sth->execute($title_id) || die "execute: $select: $DBI::errstr";
         my @issues;
-        while (my ($issue_num, $image_page_url) = $sth->fetchrow_array()) {
+        while (my ($id, $issue_num, $image_page_url) = $sth->fetchrow_array()) {
             my %row;
+            $row{ID} = $id;
             $row{ISSUE_NUM} = $issue_num;
-            $row{IMAGE_PAGE_URL} = $image_page_url;
+            # $row{IMAGE_PAGE_URL} = $image_page_url;
             push(@issues, \%row);
         }
         $row{ISSUES} = \@issues;
+        next unless scalar @issues;
         push(@titles, \%row);
     }
     $t->param(INDEXED_TITLES => \@titles);
