@@ -11,9 +11,9 @@
     <div class="grid">
     <TMPL_LOOP COMICS>
         <div align="center">
-        <a class="type4" href="<TMPL_VAR IMAGE_PAGE_URL>" target="_blank"><img width="95%" src="<TMPL_VAR THUMB_URL>" border="0"><br>
+        <a onClick="editIssue(<TMPL_VAR ID>);" class="type4" style="cursor: pointer;" target="_blank"><img width="95%" src="<TMPL_VAR THUMB_URL>" border="0"><br>
         <TMPL_VAR TITLE> #<TMPL_VAR ISSUE_NUM></a>
-        <br><TMPL_VAR YEAR>, <TMPL_VAR GRADE_ABBREV> <button onClick="editIssue(<TMPL_VAR ID>);">Edit</button>
+        <br><TMPL_VAR YEAR>, <TMPL_VAR GRADE_ABBREV>
         </div>
     </TMPL_LOOP>
     </div>

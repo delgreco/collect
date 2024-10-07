@@ -13,6 +13,7 @@ body {
 
 h1 {
     margin-top: 0px;
+    margin-bottom: 0px;
 }
 
 a:link    {color:#00FFFF; text-decoration:none;}
@@ -64,8 +65,10 @@ function editIssue(id) {
 
     <h1>Collect</h1>
 
-    <a href="<TMPL_VAR SCRIPT_NAME>?action=collectionInterface">full index</a> - <a href="?action=editIssue">add comic</a><br>
-    Average Year: <TMPL_VAR AVERAGE_YEAR>; Average Grade: <TMPL_VAR AVERAGE_GRADE>; Total Books: <TMPL_VAR TOTAL_COLLECTION_COUNT>
+    <a href="<TMPL_VAR SCRIPT_NAME>?action=collectionInterface">text index</a> 
+    - <a href="?action=mainInterface">image gallery</a>
+    - <a href="?action=editIssue">add item</a><br>
+    <TMPL_IF AVERAGE_YEAR>Average Year: <TMPL_VAR AVERAGE_YEAR>; Average Grade: <TMPL_VAR AVERAGE_GRADE>; Total Items: <TMPL_VAR TOTAL_COLLECTION_COUNT></TMPL_IF>
 </div>
 
 <div style="float: left;">
