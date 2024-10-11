@@ -263,7 +263,6 @@ sub mainInterface {
     my $message = $arg{message};
     my $title_id = $arg{title_id};
     my $ungraded = $arg{ungraded} || '';
-    #print STDERR "I am here with '$title_id'\n";
     $title_id = $cgi->param('title_id') unless $title_id;
     my $year=$cgi->param('year');
     $ungraded=$cgi->param('ungraded') unless $ungraded;
@@ -296,6 +295,16 @@ sub mainInterface {
         else {
             $where .= " AND $where_condition";
         }
+    }
+    my $title = '';
+    if ( $title_id ) {
+        # get title
+        my $select = <<~"SQL";
+        SELECT title FROM comics_titles WHERE id = ?
+        SQL
+        my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
+        $sth->execute($title_id) || die "execute: $select: $DBI::errstr";
+        ($title) = $sth->fetchrow_array();
     }
     # get year list
     my $select = <<~"SQL";
@@ -367,9 +376,10 @@ sub mainInterface {
     if ( ! $year ) {
         $year = "any year";
     }
-    my $average_year = _getAverageYear();
-    my $average_grade = _getAverageGrade();
+    my $average_year = _getAverageYear($title_id);
+    my $average_grade = _getAverageGrade($title_id);
     my $total_collection_count = _getTotalCollectionCount();
+    $t->param(TITLE => $title);
     $t->param(AVERAGE_YEAR => $average_year);
     $t->param(AVERAGE_GRADE => $average_grade);
     $t->param(TOTAL_COLLECTION_COUNT => $total_collection_count);
@@ -477,11 +487,17 @@ Return the average publishing year of al the issues in the collection.
 =cut
 
 sub _getAverageYear {
+    my $title_id = $_[0];
+    my $where = ''; my @bind_vars;
+    if ( $title_id ) {
+        $where = 'WHERE title_id = ?';
+        push(@bind_vars, $title_id);
+    }
     my $select = <<~"SQL";
-    SELECT ROUND(AVG(year)) FROM comics
+    SELECT ROUND(AVG(year)) FROM comics $where
     SQL
     my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    $sth->execute(@bind_vars) || die "execute: $select: $DBI::errstr";
     my ($average_year) = $sth->fetchrow_array();
     return $average_year;
 }
@@ -495,13 +511,20 @@ Only the best copy of each issue in the collection is graded, in the few cases w
 =cut
 
 sub _getAverageGrade {
+    my $title_id = $_[0];
+    my $where = ''; my @bind_vars;
+    if ( $title_id ) {
+        $where = 'WHERE title_id = ?';
+        push(@bind_vars, $title_id);
+    }
     my $select = <<~"SQL";
     SELECT ROUND(AVG(cgc_number), 1) FROM comics
     LEFT JOIN comics_grades AS g
     ON g.id = grade_id
+    $where
     SQL
     my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    $sth->execute(@bind_vars) || die "execute: $select: $DBI::errstr";
     my ($average_cgc_num) = $sth->fetchrow_array();
     return $average_cgc_num;
 }

@@ -63,12 +63,13 @@ function editIssue(id) {
 
 <div style="float: left; width: 50%;">
 
-    <h1>Collect</h1>
+    <h1>Collect<TMPL_IF TOTAL_COLLECTION_COUNT> - <TMPL_VAR TOTAL_COLLECTION_COUNT> Items</TMPL_IF></h1>
 
     <a href="<TMPL_VAR SCRIPT_NAME>?action=collectionInterface">text index</a> 
     - <a href="?action=mainInterface">image gallery</a>
-    - <a href="?action=editIssue">add item</a><br>
-    <TMPL_IF AVERAGE_YEAR>Average Year: <TMPL_VAR AVERAGE_YEAR>; Average Grade: <TMPL_VAR AVERAGE_GRADE>; Total Items: <TMPL_VAR TOTAL_COLLECTION_COUNT></TMPL_IF>
+    - <button onClick="location='?action=editIssue';">add item</button><br>
+
+    <TMPL_IF TITLE><TMPL_VAR TITLE>: </TMPL_IF><TMPL_IF AVERAGE_YEAR>Average Year: <TMPL_VAR AVERAGE_YEAR>; Average Grade: <TMPL_VAR AVERAGE_GRADE></TMPL_IF>
 </div>
 
 <div style="float: left;">
