@@ -1,10 +1,12 @@
 <TMPL_INCLUDE NAME="header.tmpl">
 
+<TMPL_IF TITLE><TMPL_VAR TITLE>: </TMPL_IF> (<TMPL_VAR COUNT> items)<TMPL_IF AVERAGE_YEAR> Average Year: <TMPL_VAR AVERAGE_YEAR>; Average Grade: <TMPL_VAR AVERAGE_GRADE></TMPL_IF>
+
 <TMPL_IF MESSAGE><span style="color: red;"><TMPL_VAR MESSAGE></span></TMPL_IF>
 
 <TMPL_IF COMICS>
     <div align="center" style="font-size: 1.3em;">
-        displaying <font color="red"><TMPL_VAR COUNT></font> issues from <font color="red"><TMPL_VAR YEAR></font><br>
+        items from <font color="red"><TMPL_VAR YEAR></font><br>
         <TMPL_IF MISSING><center>missing <font color="red"><TMPL_VAR MISSING></font><br></TMPL_IF>
     </div> <br>
  

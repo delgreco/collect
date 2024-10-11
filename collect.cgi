@@ -113,7 +113,7 @@ sub _collapse_series {
 
 =head2 collectionInterface()
 
-Image-less view of all issues in the collection.  This is the easiest view for quickly seeing if a given issue is in the collection.
+Image-less view of all issues in the collection, or the "text index".
 
 =cut
 
@@ -202,6 +202,7 @@ Screen on which to edit an issue record.
 
 sub editIssue {
     my $id = $cgi->param('id');
+    my $title_id = $cgi->param('title_id');
     my $t = HTML::Template->new(filename => 'templates/edit.tmpl');
     my $sql = <<~"SQL";
     SELECT * FROM comics WHERE id = ?
@@ -209,7 +210,7 @@ sub editIssue {
     my $issue_ref = $dbh->selectrow_hashref($sql, undef, $id);
     $t = _getTitlesDropdown(
         template => $t,
-        selected_title_id => $issue_ref->{title_id},
+        selected_title_id => $issue_ref->{title_id} || $title_id,
     );
     $t = _getGradesDropdown(
         template => $t,
@@ -298,7 +299,6 @@ sub mainInterface {
     }
     my $title = '';
     if ( $title_id ) {
-        # get title
         my $select = <<~"SQL";
         SELECT title FROM comics_titles WHERE id = ?
         SQL
@@ -380,6 +380,7 @@ sub mainInterface {
     my $average_grade = _getAverageGrade($title_id);
     my $total_collection_count = _getTotalCollectionCount();
     $t->param(TITLE => $title);
+    $t->param(TITLE_ID => $title_id);
     $t->param(AVERAGE_YEAR => $average_year);
     $t->param(AVERAGE_GRADE => $average_grade);
     $t->param(TOTAL_COLLECTION_COUNT => $total_collection_count);
@@ -562,26 +563,9 @@ sub _getGradesDropdown {
     return $t;
 }
 
-=head2 getHeaderValues()
-
-TODO
-
-=cut
-
-sub getHeaderValues {
-    my $t = $_[0];
-    my $average_year = _getAverageYear();
-    my $average_grade = _getAverageGrade();
-    my $total_collection_count = _getTotalCollectionCount();
-    $t->param(AVERAGE_YEAR => $average_year);
-    $t->param(AVERAGE_GRADE => $average_grade);
-    $t->param(TOTAL_COLLECTION_COUNT => $total_collection_count);
-    return $t;
-}
-
 =head2 getLeastRecentYear()
 
-Return the oldest publishing year of all books in the collection.
+Return the oldest publishing year of all items in the collection.
 
 =cut
 
@@ -597,7 +581,7 @@ sub _getLeastRecentYear {
 
 =head2 getMostRecentYear()
 
-Return the most recent publishing year of all books in the collection.
+Return the most recent publishing year of all items in the collection.
 
 =cut
 
@@ -655,6 +639,8 @@ sub _getTotalCollectionCount {
     my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
     $sth->execute || die "execute: $select: $DBI::errstr";
     my ($count) = $sth->fetchrow_array();
+    # commify
+    $count =~ s/(?<=\d)(?=(\d{3})+$)/,/g;
     return $count;
 }
 
