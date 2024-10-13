@@ -68,49 +68,6 @@ $action = qq {mainInterface} if ! $action;
 &{\&{$action}}();
 exit;
 
-=head2 about()
-
-Page with information about this project.
-
-=cut
-
-sub about {
-    my $t = HTML::Template->new(filename => 'templates/about.tmpl');
-    print "Content-type: text/html\n\n";
-    print $t->output;
-}
-
-=head2 _collapse_series
-
-Given an array of integers, collapse it and return an array with any series represented like MIN-MAX.
-
-=cut
-
-sub _collapse_series {
-    my @arr = @_;
-    my @result;
-    my $start = $arr[0]; # Initialize the start of the first series
-    for ( my $i = 1; $i <= @arr; $i++ ) {
-        if ( $i == @arr || $arr[$i] != $arr[$i-1] + 1 ) {
-            # Finalize the series
-            if ( $start == $arr[$i-1] ) {
-                # Single number, no range
-                push @result, $start;
-            } 
-            elsif ( $arr[$i-1] == $start + 1 ) {
-                # Series of exactly two numbers, do not collapse
-                push @result, $start, $arr[$i-1];
-            }
-            else {
-                # Collapse the series of three or more numbers
-                push @result, "$start-$arr[$i-1]";
-            }
-            $start = $arr[$i]; # Start a new series
-        }
-    }
-    return @result;
-}
-
 =head2 collectionInterface()
 
 Image-less view of all issues in the collection, or the "text index".
@@ -519,39 +476,38 @@ SQL
     mainInterface( ungraded => $ungraded );
 }
 
-=head2 yearDistributionChart
+=head1 INTERNAL SUBROUTINES
 
-TODO
+=head2 _collapse_series
+
+Given an array of integers, collapse it and return an array with any series represented like MIN-MAX.
 
 =cut
 
-sub yearDistributionChart {
-    my $t = HTML::Template->new(filename => 'templates/yearDistributionChart.tmpl');
-    my $select = <<~"SQL";
-    SELECT DISTINCT year FROM comics ORDER BY year
-    SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
-    my @titles;
-    while (my ($year) = $sth->fetchrow_array()) {
-        my %row;
-        my $select="SELECT COUNT(*) FROM comics WHERE year = '$year'";
-        my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-        $sth->execute || die "execute: $select: $DBI::errstr";
-        my ($count) = $sth->fetchrow_array();
-        push(@titles, \%row);
+sub _collapse_series {
+    my @arr = @_;
+    my @result;
+    my $start = $arr[0]; # Initialize the start of the first series
+    for ( my $i = 1; $i <= @arr; $i++ ) {
+        if ( $i == @arr || $arr[$i] != $arr[$i-1] + 1 ) {
+            # Finalize the series
+            if ( $start == $arr[$i-1] ) {
+                # Single number, no range
+                push @result, $start;
+            } 
+            elsif ( $arr[$i-1] == $start + 1 ) {
+                # Series of exactly two numbers, do not collapse
+                push @result, $start, $arr[$i-1];
+            }
+            else {
+                # Collapse the series of three or more numbers
+                push @result, "$start-$arr[$i-1]";
+            }
+            $start = $arr[$i]; # Start a new series
+        }
     }
-    $t->param(TITLES => \@titles);
-    my $average_year = _getAverageYear();
-    $t->param(AVERAGE_YEAR => $average_year);
-    my $total_collection_count = _getTotalCollectionCount();
-    $t->param(TOTAL_COLLECTION_COUNT => $total_collection_count);
-    my $output = $t->output;
-    print "Content-type: text/html\n\n";
-    print $output;
+    return @result;
 }
-
-=head1 INTERNAL SUBROUTINES
 
 =head2 _getAverageYear()
 
