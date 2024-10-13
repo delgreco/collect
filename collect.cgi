@@ -194,6 +194,26 @@ sub deleteIssue {
     );
 }
 
+=head2 editCategory()
+
+Screen on which to edit a category /title.
+
+=cut
+
+sub editCategory {
+    my $id = $cgi->param('id');
+    my $t = HTML::Template->new(filename => 'templates/editCategory.tmpl');
+    my $sql = <<~"SQL";
+    SELECT * FROM comics_titles WHERE id = ?
+    SQL
+    my $cat_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    $t->param(CATEGORY => $cat_ref->{title});
+    $t->param(ID => $id);
+    $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
+    print "Content-type: text/html\n\n";
+    print $t->output;
+}
+
 =head2 editIssue()
 
 Screen on which to edit an issue record.
@@ -203,7 +223,7 @@ Screen on which to edit an issue record.
 sub editIssue {
     my $id = $cgi->param('id');
     my $title_id = $cgi->param('title_id');
-    my $t = HTML::Template->new(filename => 'templates/edit.tmpl');
+    my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
     my $sql = <<~"SQL";
     SELECT * FROM comics WHERE id = ?
     SQL
@@ -405,6 +425,47 @@ sub mainInterface {
     print $output;
 }
 
+=head2 saveCategory()
+
+Add or update an issue from L</editCategory()>.
+
+=cut
+
+sub saveCategory {
+    my $id;
+    my $category = $cgi->param('category');
+    if ( $cgi->param('id') ) {
+        $id = $cgi->param('id');
+        my $sql = <<"SQL";
+        UPDATE comics_titles
+        SET title = ?
+        WHERE id = ?
+SQL
+        my $rows_updated = $IX::DB::dbh->do(qq{$sql}, undef, $category);
+        if ( $rows_updated != 1 ) {
+            $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
+        }
+    }
+    else {
+        my $sql = <<~"SQL";
+        INSERT INTO comics_titles
+        (title) 
+        VALUES 
+        (?)
+        SQL
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $category);
+        if ( $rows_inserted != 1 ) {
+            IX::Debug::log("ERROR: $rows_inserted rows inserted.");
+        }
+        else {
+            $IX::Template::message = qq |Category added.|;
+        }
+        # grab the automatically incremented id that was generated
+        $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
+    }
+    mainInterface();
+}
+
 =head2 saveIssue()
 
 Add or update an issue from L</editIssue()>.
@@ -416,21 +477,32 @@ sub saveIssue {
     my $grade_id = $cgi->param('grade_id') || 0;
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
-        my $update="UPDATE comics
+        my $sql = <<"SQL";
+        UPDATE comics
         SET title_id = ?, issue_num = ?, year = ?, thumb_url = ?, image_page_url = ?, notes = ?, grade_id = ?
-        WHERE id = ?";
-        my $sth = $dbh->prepare($update);
-        $sth->execute($cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id, $id) || die "sth->execute($update): $DBI::errstr\n";
+        WHERE id = ?
+SQL
+        my $rows_updated = $IX::DB::dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id, $id);
+        if ( $rows_updated != 1 ) {
+            $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
+        }
     }
     else {
-        my $insert="INSERT INTO comics
+        my $sql = <<~"SQL";
+        INSERT INTO comics
         (title_id, issue_num, year, thumb_url, image_page_url, notes, grade_id) 
         VALUES 
-        (?, ?, ?, ?, ?, ?, ?)";
-        my $sth = $dbh->prepare($insert) || die "prepare: $insert: $DBI::errstr";
-        $sth->execute($cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id) || die "execute: $insert: $DBI::errstr";
+        (?, ?, ?, ?, ?, ?, ?)
+        SQL
+        my $rows_inserted = $IX::DB::dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id);
+        if ( $rows_inserted != 1 ) {
+            IX::Debug::log("ERROR: $rows_inserted rows inserted.");
+        }
+        else {
+            $IX::Template::message = qq |Item added.|;
+        }
         # grab the automatically incremented id that was generated
-        $id = $sth->{mysql_insertid} || $sth->{insertid}; 
+        $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
     }
     # handle cover file, if added
     if ( $cgi->param('cover') ) {

@@ -1,6 +1,6 @@
 <TMPL_INCLUDE NAME="header.tmpl">
 
-<div style="float: left;">
+<div style="float: left; width: 50%;">
     <h2><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Item</h2>
 
     <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
@@ -27,7 +27,7 @@
 
     Cover Image: <input type="file" name="cover"><br><br>
 
-    Notes: <input type="text" name="notes" size="125" value="<TMPL_VAR NOTES>"> <br><br>
+    Notes: <input type="text" name="notes" size="90%" value="<TMPL_VAR NOTES>"> <br><br>
 
     <input type="hidden" name="id" value="<TMPL_VAR ID>">
     <input type="hidden" name="action" value="saveIssue">
@@ -43,7 +43,7 @@
 
 </div>
 
-<div style="float: right;">
+<div style="float: right; width: 50%;">
     <img style="text-align: right; max-width: 100%;" src="<TMPL_VAR THUMB_URL>">
 </div>
 <div style="clear: both;"></div>

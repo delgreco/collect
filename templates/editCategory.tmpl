@@ -1,0 +1,31 @@
+<TMPL_INCLUDE NAME="header.tmpl">
+
+<div style="float: left; width: 50%;">
+    <h2><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Category / Title</h2>
+
+    <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
+
+    Category / Title: <input type="text" size="100" name="category" value="<TMPL_VAR CATEGORY>"><br><br>
+
+    <input type="hidden" name="id" value="<TMPL_VAR ID>">
+    <input type="hidden" name="action" value="saveCategory">
+    <input type="submit" value="Save" style="font-size: 1.4em;">
+    </form>
+
+    <br><br><br>
+    <form method="post" action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return confirm('Really delete this category?');">
+    <input type="hidden" name="action" value="deleteCategory">
+    <input type="hidden" name="id" value="<TMPL_VAR ID>">
+    <input type="submit" value="Delete">
+    </form>
+
+</div>
+
+<div style="float: right; width: 50%;">
+    <!-- <img style="text-align: right; max-width: 100%;" src="<TMPL_VAR THUMB_URL>"> -->
+</div>
+<div style="clear: both;"></div>
+
+
+
+<TMPL_INCLUDE NAME="footer.tmpl">
