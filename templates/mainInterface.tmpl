@@ -6,7 +6,7 @@
 
 <TMPL_IF COMICS>
     <div align="center" style="font-size: 1.3em;">
-        items from <font color="red"><TMPL_VAR YEAR></font><br>
+        <font color="red"><TMPL_VAR TITLE></font> from <font color="red"><TMPL_VAR YEAR></font><br>
         <TMPL_IF MISSING><center>missing <font color="red"><TMPL_VAR MISSING></font><br></TMPL_IF>
     </div> <br>
  
@@ -14,8 +14,8 @@
     <TMPL_LOOP COMICS>
         <div align="center">
         <a onClick="editIssue(<TMPL_VAR ID>);" class="type4" style="cursor: pointer;" target="_blank"><img width="95%" src="<TMPL_VAR THUMB_URL>" border="0"><br>
-        <TMPL_VAR TITLE> #<TMPL_VAR ISSUE_NUM></a>
-        <br><TMPL_VAR YEAR>, <TMPL_VAR GRADE_ABBREV>
+        #<TMPL_VAR ISSUE_NUM> <TMPL_VAR YEAR>, <TMPL_VAR GRADE_ABBREV></a><br>
+        <span style="font-size: 0.8em;"><TMPL_VAR NOTES></span>
         </div>
     </TMPL_LOOP>
     </div>

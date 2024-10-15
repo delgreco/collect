@@ -339,6 +339,7 @@ sub mainInterface {
         push(@numbers, $issue_num); # for finding missing issues below
         $row{YEAR} = $year;
         $row{GRADE_ABBREV} = $grade_abbrev;
+        $row{NOTES} = $notes;
         $row{IMAGE_PAGE_URL} = $image_page_url;
         # override database value if new filesystem
         # method is being used
@@ -398,7 +399,7 @@ sub saveCategory {
         SET title = ?
         WHERE id = ?
 SQL
-        my $rows_updated = $IX::DB::dbh->do(qq{$sql}, undef, $category);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $category);
         if ( $rows_updated != 1 ) {
             $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
         }
@@ -439,7 +440,7 @@ sub saveIssue {
         SET title_id = ?, issue_num = ?, year = ?, thumb_url = ?, image_page_url = ?, notes = ?, grade_id = ?
         WHERE id = ?
 SQL
-        my $rows_updated = $IX::DB::dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id, $id);
         if ( $rows_updated != 1 ) {
             $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
         }
@@ -451,7 +452,7 @@ SQL
         VALUES 
         (?, ?, ?, ?, ?, ?, ?)
         SQL
-        my $rows_inserted = $IX::DB::dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id);
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
