@@ -1,7 +1,18 @@
 <TMPL_INCLUDE NAME="header.tmpl">
-
+<hr>
 <div style="float: left; width: 50%;">
-    <h2><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Item</h2>
+    
+    <h2 style="display: inline; margin-right: 100px;"><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Item</h2>
+
+    <TMPL_IF ID>
+        <form style="display: inline;" method="post" action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return confirm('Really delete this issue?');">
+        <input type="hidden" name="action" value="deleteIssue">
+        <input type="hidden" name="id" value="<TMPL_VAR ID>">
+        <input style="display: inline;" type="submit" value="Delete">
+        </form>
+    </TMPL_IF>
+
+    <br><br>
 
     <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
@@ -14,9 +25,9 @@
 
     Issue #: <input type="text" size="6" name="issue_num" value="<TMPL_VAR ISSUE_NUM>"> &nbsp;&nbsp;&nbsp;&nbsp; Year: <input type="text" name="year" value="<TMPL_VAR YEAR>"><br><br>
 
-    Image Page URL: <input type="text" size="100" name="image_page_url" value="<TMPL_VAR IMAGE_PAGE_URL>"><br><br>
+    Image Page URL: <input style="width: 85%;" type="text" name="image_page_url" value="<TMPL_VAR IMAGE_PAGE_URL>"><br><br>
 
-    Thumbnail Image URL: <input type="text" size="100" name="thumb_url" value="<TMPL_VAR THUMB_URL>"><br><br>
+    Thumbnail Image URL: <input style="width: 85%;" type="text" name="thumb_url" value="<TMPL_VAR THUMB_URL>"><br><br>
 
     Grade: <select name="grade_id">
     <option value="">select grade of best copy...
@@ -27,24 +38,34 @@
 
     Cover Image: <input type="file" name="cover"><br><br>
 
-    Notes: <input type="text" name="notes" size="90%" value="<TMPL_VAR NOTES>"> <br><br>
+    Notes: <input style="width: 85%;" type="text" name="notes" value="<TMPL_VAR NOTES>"> <br><br>
 
     <input type="hidden" name="id" value="<TMPL_VAR ID>">
     <input type="hidden" name="action" value="saveIssue">
-    <input type="submit" value="Save" style="font-size: 1.4em;">
+    <input type="submit" value="Save Item" style="font-size: 1.4em;">
     </form>
 
-    <br><br><br>
-    <form method="post" action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return confirm('Really delete this issue?');">
-    <input type="hidden" name="action" value="deleteIssue">
+    <br><br>
+    
+    <hr>
+    <h2>Images</h2>
+    
+    <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
+
+    Image: <input type="file" name="cover"><br><br>
+
+    Notes: <input style="width: 85%;" type="text" name="notes" value="<TMPL_VAR NOTES>"> <br><br>
+
     <input type="hidden" name="id" value="<TMPL_VAR ID>">
-    <input type="submit" value="Delete">
+    <input type="hidden" name="action" value="saveImage">
+    <input type="submit" value="Save Image" style="font-size: 1.4em;">
     </form>
+
 
 </div>
 
-<div style="float: right; width: 50%;">
-    <img style="text-align: right; max-width: 100%;" src="<TMPL_VAR THUMB_URL>">
+<div style="float: right; width: 50%; text-align: right;">
+    <img style="max-width: 100%;" src="<TMPL_VAR THUMB_URL>">
 </div>
 <div style="clear: both;"></div>
 
