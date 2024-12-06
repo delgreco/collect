@@ -52,12 +52,13 @@
     
     <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
-    Image: <input type="file" name="cover"><br><br>
+    Image: <input type="file" name="image"><br><br>
 
     Notes: <input style="width: 85%;" type="text" name="notes" value="<TMPL_VAR NOTES>"> <br><br>
 
-    <input type="hidden" name="id" value="<TMPL_VAR ID>">
+    <input type="hidden" name="item_id" value="<TMPL_VAR ID>">
     <input type="hidden" name="action" value="saveImage">
+    <input type="hidden" name="id" value="<TMPL_VAR IMAGE_ID>">
     <input type="submit" value="Save Image" style="font-size: 1.4em;">
     </form>
 

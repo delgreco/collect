@@ -57,7 +57,9 @@ my $cgi = new CGI;
 my $dbh = DBI->connect(
     "DBI:mysql:$DATABASE",
     "$DB_USER",
-    "$DB_PASSWORD"
+    "$DB_PASSWORD", {
+        RaiseError => 1,    # Dies on errors
+    }
 ) || die "Connect failed: $DBI::errstr\n"; 
 
 my $action=$cgi->param('action');
@@ -178,7 +180,7 @@ Screen on which to edit an issue record.
 =cut
 
 sub editIssue {
-    my $id = $cgi->param('id');
+    my $id = $_[0] || $cgi->param('id');
     my $title_id = $cgi->param('title_id');
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
     my $sql = <<~"SQL";
@@ -424,6 +426,63 @@ SQL
     mainInterface();
 }
 
+=head2 saveImage()
+
+Add or update an image from L</editIssue()>.
+
+=cut
+
+sub saveImage {
+    my $id = $cgi->param('id') || 0;
+    my $item_id = $cgi->param('item_id') || 0;
+    my $notes = $cgi->param('notes') || 0;
+    my $message = '';
+    if ( $cgi->param('id') ) {
+        $id = $cgi->param('id');
+        my $sql = <<"SQL";
+        UPDATE comics_images
+        SET notes = ?
+        WHERE id = ?
+SQL
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $notes, $id);
+        if ( $rows_updated != 1 ) {
+            print STDERR "ERROR: $rows_updated rows updated.\n";
+        }
+    }
+    else {
+        my $sql = <<~"SQL";
+        INSERT INTO comics_images
+        (notes, item_id) 
+        VALUES 
+        (?, ?)
+        SQL
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id);
+        if ( $rows_inserted != 1 ) {
+            print STDERR "ERROR: $rows_inserted rows inserted.\n";
+        }
+        else {
+            $message = "Item added.";
+        }
+        # grab the automatically incremented id that was generated
+        $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
+    }
+    # NOTE: this part should go after db insert so we can use the id from that for filename
+    if ( $cgi->param('image') ) {
+        my $ext = '';
+        if ( $cgi->param('image') =~ m/\.(.+)$/ ) {
+            $ext = $1;
+        }
+        open (FILE, "> $ENV{DOCUMENT_ROOT}/comics/images/${id}.${ext}") or die "$!";
+        binmode FILE;
+        my $image = $cgi->param('image');
+        while ( <$image> ) {
+            print FILE;
+        }
+        close FILE;
+    }
+    editIssue( $item_id );
+}
+
 =head2 saveIssue()
 
 Add or update an issue from L</editIssue()>.
@@ -431,7 +490,7 @@ Add or update an issue from L</editIssue()>.
 =cut
 
 sub saveIssue {
-    my $id;
+    my $id; my $message = '';
     my $grade_id = $cgi->param('grade_id') || 0;
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
@@ -442,7 +501,7 @@ sub saveIssue {
 SQL
         my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id, $id);
         if ( $rows_updated != 1 ) {
-            $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
+            print STDERR "ERROR: $rows_updated rows updated.\n";
         }
     }
     else {
@@ -457,7 +516,7 @@ SQL
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
         else {
-            $IX::Template::message = qq |Item added.|;
+            $message = "Item added.";
         }
         # grab the automatically incremented id that was generated
         $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
@@ -474,7 +533,7 @@ SQL
     }
     my $ungraded = 1;
     $ungraded = 0 if $grade_id;
-    mainInterface( ungraded => $ungraded );
+    mainInterface( ungraded => $ungraded, message => $message );
 }
 
 =head1 INTERNAL SUBROUTINES
