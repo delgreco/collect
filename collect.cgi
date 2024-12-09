@@ -202,7 +202,22 @@ sub editIssue {
     my $localcover = "$ENV{DOCUMENT_ROOT}/comics/${id}.jpg";
     if ( -e $localcover ) {
         $issue_ref->{thumb_url} = "/comics/${id}.jpg";
-    }    
+    }
+    # show all images
+    # my $select = <<~"SQL";
+    # SELECT id, extension
+    # FROM comics_images
+    # WHERE item_id = ?>
+    # SQL
+    # my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
+    # $sth->execute($id) || die "execute: $select: $DBI::errstr";
+    # my @images;
+    # while (my ($image_id, $extension) = $sth->fetchrow_array()) {
+    #     my %row;
+    #     $row{YEAR} = $this_year;
+    #     push(@images, \%row);
+    # }
+    # $t->param(IMAGES => \@images);
     $t->param(THUMB_URL => $issue_ref->{thumb_url});
     $t->param(IMAGE_PAGE_URL => $issue_ref->{image_page_url});
     $t->param(NOTES => $issue_ref->{notes});
