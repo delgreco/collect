@@ -204,20 +204,21 @@ sub editIssue {
         $issue_ref->{thumb_url} = "/comics/${id}.jpg";
     }
     # show all images
-    # my $select = <<~"SQL";
-    # SELECT id, extension
-    # FROM comics_images
-    # WHERE item_id = ?>
-    # SQL
-    # my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    # $sth->execute($id) || die "execute: $select: $DBI::errstr";
-    # my @images;
-    # while (my ($image_id, $extension) = $sth->fetchrow_array()) {
-    #     my %row;
-    #     $row{YEAR} = $this_year;
-    #     push(@images, \%row);
-    # }
-    # $t->param(IMAGES => \@images);
+    my $select = <<~"SQL";
+    SELECT id, extension
+    FROM comics_images
+    WHERE item_id = ?
+    SQL
+    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
+    $sth->execute($id) || die "execute: $select: $DBI::errstr";
+    my @images;
+    while (my ($image_id, $extension) = $sth->fetchrow_array()) {
+        my %row;
+        # $row{NOTES} = $notes;
+        $row{FILENAME} = "${image_id}.${extension}";
+        push(@images, \%row);
+    }
+    $t->param(IMAGES => \@images);
     $t->param(THUMB_URL => $issue_ref->{thumb_url});
     $t->param(IMAGE_PAGE_URL => $issue_ref->{image_page_url});
     $t->param(NOTES => $issue_ref->{notes});
@@ -452,6 +453,12 @@ sub saveImage {
     my $item_id = $cgi->param('item_id') || 0;
     my $notes = $cgi->param('notes') || 0;
     my $message = '';
+    my $ext = '';
+    if ( $cgi->param('image') ) {
+        if ( $cgi->param('image') =~ m/\.(.+)$/ ) {
+            $ext = $1;
+        }
+    }
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<"SQL";
@@ -467,9 +474,9 @@ SQL
     else {
         my $sql = <<~"SQL";
         INSERT INTO comics_images
-        (notes, item_id) 
+        (notes, item_id, extension) 
         VALUES 
-        (?, ?)
+        (?, ?, ?)
         SQL
         my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id);
         if ( $rows_inserted != 1 ) {
@@ -483,10 +490,6 @@ SQL
     }
     # NOTE: this part should go after db insert so we can use the id from that for filename
     if ( $cgi->param('image') ) {
-        my $ext = '';
-        if ( $cgi->param('image') =~ m/\.(.+)$/ ) {
-            $ext = $1;
-        }
         open (FILE, "> $ENV{DOCUMENT_ROOT}/comics/images/${id}.${ext}") or die "$!";
         binmode FILE;
         my $image = $cgi->param('image');

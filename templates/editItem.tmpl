@@ -1,5 +1,7 @@
 <TMPL_INCLUDE NAME="header.tmpl">
+
 <hr>
+
 <div style="float: left; width: 50%;">
     
     <h2 style="display: inline; margin-right: 100px;"><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Item</h2>
@@ -54,7 +56,7 @@
 
     Image: <input type="file" name="image"><br><br>
 
-    Notes: <input style="width: 85%;" type="text" name="notes" value="<TMPL_VAR NOTES>"> <br><br>
+    Notes: <input style="width: 85%;" type="text" name="notes" value="<TMPL_VAR IMAGE_NOTES>"> <br><br>
 
     <input type="hidden" name="item_id" value="<TMPL_VAR ID>">
     <input type="hidden" name="action" value="saveImage">
@@ -66,10 +68,29 @@
 </div>
 
 <div style="float: right; width: 50%; text-align: right;">
-    <img style="max-width: 100%;" src="<TMPL_VAR THUMB_URL>">
+
+    <img id="bigimage" style="max-width: 100%;" src="<TMPL_VAR THUMB_URL>">
+
+    <div class="images_grid">
+
+    <TMPL_LOOP IMAGES>
+        <div>
+            <img style="height: 120px;" src="/comics/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>');">
+        </div>
+    </TMPL_LOOP>
+
+    </div>
+
 </div>
 <div style="clear: both;"></div>
 
+<script>
+
+function setImage(filename) {
+    document.getElementById('bigimage').src = '/comics/images/' + filename;
+}
+
+</script>
 
 
 <TMPL_INCLUDE NAME="footer.tmpl">
