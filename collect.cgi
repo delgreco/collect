@@ -4,18 +4,20 @@ use strict;
 use warnings;
 
 # we use indented HEREDOCs among other things
+# so require a minimum Perl version
 use 5.026;
 
-use cPanelUserConfig; # finds modules installed by Cpanel
+use lib qw(
+    .
+    local/lib/perl5
+    local/lib/perl5/x86_64-linux-thread-multi
+);
+
+#use cPanelUserConfig; # finds modules installed by Cpanel
 use CGI;
 use CGI::Carp('fatalsToBrowser');
 use DBI;
 use HTML::Template;
-
-use lib qw(
-    .
-    ..
-);
 
 # batteries not included,
 # but this module expected at the level above (..)
