@@ -412,11 +412,11 @@ sub saveCategory {
     my $category = $cgi->param('category');
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
-        my $sql = <<"SQL";
+        my $sql = <<~"SQL";
         UPDATE comics_titles
         SET title = ?
         WHERE id = ?
-SQL
+        SQL
         my $rows_updated = $dbh->do(qq{$sql}, undef, $category);
         if ( $rows_updated != 1 ) {
             $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
@@ -461,11 +461,11 @@ sub saveImage {
     }
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
-        my $sql = <<"SQL";
+        my $sql = <<~"SQL";
         UPDATE comics_images
         SET notes = ?
         WHERE id = ?
-SQL
+        SQL
         my $rows_updated = $dbh->do(qq{$sql}, undef, $notes, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
@@ -512,11 +512,11 @@ sub saveIssue {
     my $grade_id = $cgi->param('grade_id') || 0;
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
-        my $sql = <<"SQL";
+        my $sql = <<~"SQL";
         UPDATE comics
         SET title_id = ?, issue_num = ?, year = ?, thumb_url = ?, image_page_url = ?, notes = ?, grade_id = ?
         WHERE id = ?
-SQL
+        SQL
         my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
