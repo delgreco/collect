@@ -47,17 +47,19 @@ Get credentials, connect to the database, and run the requested or default actio
 =cut
 
 open DB, "./.db" || die("Couldn't open file: $!");
+open DB_HOST, "./.dbhost" || die("Couldn't open file: $!");
 open DB_USER, "./.dbuser" || die("Couldn't open file: $!");
 open DB_PASSWORD, "./.dbpass" || die("Couldn't open file: $!");
 
 my $DATABASE = <DB>; chomp($DATABASE);
+my $DATABASE_HOST = <DB_HOST>; chomp($DATABASE_HOST);
 my $DB_USER = <DB_USER>; chomp($DB_USER);
 my $DB_PASSWORD = <DB_PASSWORD>; chomp($DB_PASSWORD);
 
 my $cgi = new CGI;
 
 my $dbh = DBI->connect(
-    "DBI:mysql:$DATABASE",
+    "DBI:mysql:database=$DATABASE;host=$DATABASE_HOST",
     "$DB_USER",
     "$DB_PASSWORD", {
         RaiseError => 1,    # Dies on errors
