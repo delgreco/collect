@@ -193,58 +193,53 @@ sub editIssue {
     my $title_id = $cgi->param('title_id') || '';
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
     my $sql = <<~"SQL";
-    SELECT image_page_url, thumb_url, title_id, year, grade_id, issue_num, item.notes, image.id, image.extension, image.main
-    FROM comics AS item
-    LEFT JOIN comics_images AS image
-    ON image.item_id = item.id
-    WHERE item.id = ?
-    GROUP BY item.id, image.id
-    HAVING image.main = 1
+    SELECT * FROM comics WHERE id = ?
     SQL
-    #my $issue_ref = $dbh->selectrow_hashref($sql, undef, $id);
-    my $sth = $dbh->prepare($sql);
-    $sth->execute($id);
-    my ($image_page_url, $thumb_url, $title_id, $year, $grade_id, $issue_num, $item_notes, $image_id, $extension) = $sth->fetchrow_array();
-
-    # my $iss = Dumper($issue_ref);
-    # $t->param(ISS => $iss);
+    my $issue_ref = $dbh->selectrow_hashref($sql, undef, $id);
     $t = _getTitlesDropdown(
         template => $t,
-        selected_title_id => $title_id,
+        selected_title_id => $title_id || $issue_ref->{title_id},
     );
     $t = _getGradesDropdown(
         template => $t,
-        selected_grade_id => $grade_id,
+        selected_grade_id => $issue_ref->{grade_id},
     );
-    $t->param(ISSUE_NUM => $issue_num);
+    $t->param(ISSUE_NUM => $issue_ref->{issue_num});
     # override database value if new filesystem
     # method is being used
-    $t->param(YEAR => $year);
+    $t->param(YEAR => $issue_ref->{year});
     # my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
     # if ( -e $localcover ) {
     #     $issue_ref->{thumb_url} = "/images/${id}.jpg";
     # }
     # show all images
     my $select = <<~"SQL";
-    SELECT id, extension
+    SELECT id, extension, main, notes
     FROM comics_images
     WHERE item_id = ?
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute($id);
     my @images;
-    while (my ($image_id, $extension) = $sth->fetchrow_array()) {
+    my $main_image_filename = '';
+    while (my ($image_id, $extension, $main, $notes) = $sth->fetchrow_array()) {
         my %row;
-        # $row{NOTES} = $notes;
+        $row{NOTES} = $notes;
         $row{FILENAME} = "${image_id}.${extension}";
+        if ( $main ) {
+            $main_image_filename = "${image_id}.${extension}";
+        }
+        else {
+            $main = 0;
+        }
+        $row{MAIN} = $main;
         push(@images, \%row);
     }
     $t->param(IMAGES => \@images);
-    my $main_image_filename = "${image_id}.${extension}";
     $t->param(MAIN_IMAGE_FILENAME => $main_image_filename);
-    $t->param(THUMB_URL => $thumb_url);           # NOTE: deprecated
-    $t->param(IMAGE_PAGE_URL => $image_page_url); # NOTE: deprecated
-    $t->param(NOTES => $item_notes);
+    $t->param(THUMB_URL => $issue_ref->{thumb_url});           # NOTE: deprecated
+    $t->param(IMAGE_PAGE_URL => $issue_ref->{image_page_url}); # NOTE: deprecated
+    $t->param(NOTES => $issue_ref->{notes});
     $t->param(ID => $id);
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     print "Content-type: text/html\n\n";
@@ -362,7 +357,7 @@ sub mainInterface {
     ON g.id = grade_id
     $where 
     GROUP BY item.id, image.id
-    HAVING image.main = 1
+    HAVING image.main = 1 OR image.main IS NULL
     ORDER BY $order_by LIMIT $limit
     SQL
     $sth = $dbh->prepare($select);
@@ -389,9 +384,11 @@ sub mainInterface {
         # override database value if new filesystem
         # method is being used
         #my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
+        $row{OFFSITE} = 1;
         my $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.jpg";
         if ( -e $localcover ) {
             $thumb_url = "/images/${image_id}.jpg";
+            $row{OFFSITE} = 0;
         }
         $row{THUMB_URL} = $thumb_url;
         $row{ID} = $id;
@@ -506,7 +503,7 @@ sub saveImage {
         VALUES 
         (?, ?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id, $ext);
         if ( $rows_inserted != 1 ) {
             print STDERR "ERROR: $rows_inserted rows inserted.\n";
         }
@@ -518,7 +515,7 @@ sub saveImage {
     }
     # NOTE: this part should go after db insert so we can use the id from that for filename
     if ( $cgi->param('image') ) {
-        open (FILE, "> $ENV{DOCUMENT_ROOT}/comics/images/${id}.${ext}") or die "$!";
+        open (FILE, "> $ENV{DOCUMENT_ROOT}/images/${id}.${ext}") or die "$!";
         binmode FILE;
         my $image = $cgi->param('image');
         while ( <$image> ) {

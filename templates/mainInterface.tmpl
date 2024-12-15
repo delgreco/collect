@@ -13,6 +13,7 @@
     <div class="grid">
     <TMPL_LOOP COMICS>
         <div align="center">
+        <TMPL_IF OFFSITE><span style="color: green;">IMAGE OFFSITE</span></TMPL_IF>
         <a onClick="editIssue(<TMPL_VAR ID>);" class="type4" style="cursor: pointer;" target="_blank"><img width="95%" src="<TMPL_VAR THUMB_URL>" border="0"><br>
         #<TMPL_VAR ISSUE_NUM> <TMPL_VAR YEAR>, <TMPL_VAR GRADE_ABBREV></a><br>
         <span style="font-size: 0.8em;"><TMPL_VAR NOTES></span>

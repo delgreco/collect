@@ -66,15 +66,19 @@
 
 </div>
 
-<div style="float: right; width: 50%; text-align: right;">
-
-    <img id="bigimage" style="max-width: 100%; height: 800px;" src="/images/<TMPL_VAR MAIN_IMAGE_FILENAME>">
+<div style="float: right; width: 50%; text-align: center;">
+    
+    <TMPL_IF MAIN_IMAGE_FILENAME>
+        <img id="bigimage" style="max-width: 100%; height: 800px;" src="/images/<TMPL_VAR MAIN_IMAGE_FILENAME>">
+    </TMPL_IF>
 
     <div class="images_grid">
 
     <TMPL_LOOP IMAGES>
-        <div>
+        <div align="center">
             <img style="height: 120px;" src="/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>');">
+            <TMPL_IF MAIN><br>(main image)</TMPL_IF>
+            <TMPL_IF NOTES><br><TMPL_VAR NOTES></TMPL_IF>
         </div>
     </TMPL_LOOP>
 
@@ -82,8 +86,6 @@
 
 </div>
 <div style="clear: both;"></div>
-
-<TMPL_VAR ISS>
 
 <script>
 
