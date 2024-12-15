@@ -16,7 +16,9 @@ use lib qw(
 #use cPanelUserConfig; # finds modules installed by Cpanel
 use CGI;
 use CGI::Carp('fatalsToBrowser');
+use Data::Dumper;
 use DBI;
+use FindBin;
 use HTML::Template;
 
 # batteries not included,
@@ -46,10 +48,10 @@ Get credentials, connect to the database, and run the requested or default actio
 
 =cut
 
-open DB, "./.db" || die("Couldn't open file: $!");
-open DB_HOST, "./.dbhost" || die("Couldn't open file: $!");
-open DB_USER, "./.dbuser" || die("Couldn't open file: $!");
-open DB_PASSWORD, "./.dbpass" || die("Couldn't open file: $!");
+open DB, "$FindBin::Bin/.db" || die("Couldn't open file: $!");
+open DB_HOST, "$FindBin::Bin/.dbhost" || die("Couldn't open file: $!");
+open DB_USER, "$FindBin::Bin/.dbuser" || die("Couldn't open file: $!");
+open DB_PASSWORD, "$FindBin::Bin/.dbpass" || die("Couldn't open file: $!");
 
 my $DATABASE = <DB>; chomp($DATABASE);
 my $DATABASE_HOST = <DB_HOST>; chomp($DATABASE_HOST);
@@ -58,11 +60,14 @@ my $DB_PASSWORD = <DB_PASSWORD>; chomp($DB_PASSWORD);
 
 my $cgi = new CGI;
 
+print STDERR "$DATABASE, $DATABASE_HOST, $DB_USER, $DB_PASSWORD\n";
+
+my $dsn = "DBI:mysql:database=$DATABASE;host=$DATABASE_HOST";
 my $dbh = DBI->connect(
-    "DBI:mysql:database=$DATABASE;host=$DATABASE_HOST",
+    $dsn,
     "$DB_USER",
     "$DB_PASSWORD", {
-        RaiseError => 1,    # Dies on errors
+        RaiseError => 1,  # dies on errors
     }
 ) || die "Connect failed: $DBI::errstr\n"; 
 
@@ -185,36 +190,48 @@ Screen on which to edit an issue record.
 
 sub editIssue {
     my $id = $_[0] || $cgi->param('id');
-    my $title_id = $cgi->param('title_id');
+    my $title_id = $cgi->param('title_id') || '';
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
     my $sql = <<~"SQL";
-    SELECT * FROM comics WHERE id = ?
+    SELECT image_page_url, thumb_url, title_id, year, grade_id, issue_num, item.notes, image.id, image.extension, image.main
+    FROM comics AS item
+    LEFT JOIN comics_images AS image
+    ON image.item_id = item.id
+    WHERE item.id = ?
+    GROUP BY item.id, image.id
+    HAVING image.main = 1
     SQL
-    my $issue_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    #my $issue_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    my $sth = $dbh->prepare($sql);
+    $sth->execute($id);
+    my ($image_page_url, $thumb_url, $title_id, $year, $grade_id, $issue_num, $item_notes, $image_id, $extension) = $sth->fetchrow_array();
+
+    # my $iss = Dumper($issue_ref);
+    # $t->param(ISS => $iss);
     $t = _getTitlesDropdown(
         template => $t,
-        selected_title_id => $issue_ref->{title_id} || $title_id,
+        selected_title_id => $title_id,
     );
     $t = _getGradesDropdown(
         template => $t,
-        selected_grade_id => $issue_ref->{grade_id},
+        selected_grade_id => $grade_id,
     );
-    $t->param(ISSUE_NUM => $issue_ref->{issue_num});
+    $t->param(ISSUE_NUM => $issue_num);
     # override database value if new filesystem
     # method is being used
-    $t->param(YEAR => $issue_ref->{year});
-    my $localcover = "$ENV{DOCUMENT_ROOT}/comics/${id}.jpg";
-    if ( -e $localcover ) {
-        $issue_ref->{thumb_url} = "/comics/${id}.jpg";
-    }
+    $t->param(YEAR => $year);
+    # my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
+    # if ( -e $localcover ) {
+    #     $issue_ref->{thumb_url} = "/images/${id}.jpg";
+    # }
     # show all images
     my $select = <<~"SQL";
     SELECT id, extension
     FROM comics_images
     WHERE item_id = ?
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute($id) || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute($id);
     my @images;
     while (my ($image_id, $extension) = $sth->fetchrow_array()) {
         my %row;
@@ -223,16 +240,18 @@ sub editIssue {
         push(@images, \%row);
     }
     $t->param(IMAGES => \@images);
-    $t->param(THUMB_URL => $issue_ref->{thumb_url});
-    $t->param(IMAGE_PAGE_URL => $issue_ref->{image_page_url});
-    $t->param(NOTES => $issue_ref->{notes});
+    my $main_image_filename = "${image_id}.${extension}";
+    $t->param(MAIN_IMAGE_FILENAME => $main_image_filename);
+    $t->param(THUMB_URL => $thumb_url);           # NOTE: deprecated
+    $t->param(IMAGE_PAGE_URL => $image_page_url); # NOTE: deprecated
+    $t->param(NOTES => $item_notes);
     $t->param(ID => $id);
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     print "Content-type: text/html\n\n";
     print $t->output;
 }
 
-=head2 findMIssing()
+=head2 findMissing()
 
 Given an array of integers (issues, card numbers, etc.) return an array of integers missing in that sequence.
 
@@ -254,7 +273,7 @@ sub findMissing {
 
 =head2 mainInterface
 
-The main image-based view of the collection.
+The main image-based view of the collection, in a grid.
 
 =cut
 
@@ -283,7 +302,7 @@ sub mainInterface {
         push(@where_conditions, "year = '$year'");
     }
     if ( $title_id ) {
-        push(@where_conditions, "comics.title_id = '$title_id'");
+        push(@where_conditions, "item.title_id = '$title_id'");
     } 
     my $where = "WHERE" if @where_conditions; 
     my $i = 0;
@@ -301,16 +320,16 @@ sub mainInterface {
         my $select = <<~"SQL";
         SELECT title FROM comics_titles WHERE id = ?
         SQL
-        my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-        $sth->execute($title_id) || die "execute: $select: $DBI::errstr";
+        my $sth = $dbh->prepare($select);
+        $sth->execute($title_id);
         ($title) = $sth->fetchrow_array();
     }
     # get year list
     my $select = <<~"SQL";
     SELECT DISTINCT year FROM comics ORDER BY year
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
     my @years;
     while (my ($this_year) = $sth->fetchrow_array()) {
         my %row;
@@ -333,20 +352,24 @@ sub mainInterface {
     }
     # get comics
     $select = <<~"SQL";
-    SELECT t.title, issue_num, year, thumb_url, image_page_url, notes, storage, comics.id, g.grade_abbrev
-    FROM comics 
+    SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, item.id, g.grade_abbrev, image.id, image.main
+    FROM comics AS item
+    LEFT JOIN comics_images AS image
+    ON image.item_id = item.id
     LEFT JOIN comics_titles AS t
-    ON t.id = comics.title_id
+    ON t.id = item.title_id
     LEFT JOIN comics_grades AS g
     ON g.id = grade_id
     $where 
+    GROUP BY item.id, image.id
+    HAVING image.main = 1
     ORDER BY $order_by LIMIT $limit
     SQL
-    $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    $sth = $dbh->prepare($select);
+    $sth->execute;
     my $count = 0; my $colspan = 6; $i = 0;
     my @comics; my @numbers;
-    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev) = $sth->fetchrow_array()) {
+    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id) = $sth->fetchrow_array()) {
         $count++; $i++;
         my %row;
         if ( $i == 1 ) {
@@ -365,9 +388,10 @@ sub mainInterface {
         $row{IMAGE_PAGE_URL} = $image_page_url;
         # override database value if new filesystem
         # method is being used
-        my $localcover = "$ENV{DOCUMENT_ROOT}/comics/${id}.jpg";
+        #my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
+        my $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.jpg";
         if ( -e $localcover ) {
-            $thumb_url = "/comics/${id}.jpg";
+            $thumb_url = "/images/${image_id}.jpg";
         }
         $row{THUMB_URL} = $thumb_url;
         $row{ID} = $id;
@@ -725,7 +749,7 @@ sub _getTitlesDropdown {
     $sth->execute || die "execute: $select: $DBI::errstr";
     while (my ($this_title, $id) = $sth->fetchrow_array()) {
         my %row;
-        if ( $selected_title_id eq $id ) {
+        if ( $selected_title_id && $selected_title_id eq $id ) {
             $row{SELECTED} = 'SELECTED';
         }
         $row{TITLE} = $this_title;
