@@ -20,6 +20,7 @@ use Data::Dumper;
 use DBI;
 use FindBin;
 use HTML::Template;
+use JSON;
 
 # batteries not included,
 # but this module expected at the level above (..)
@@ -262,13 +263,14 @@ sub editIssue {
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute($id);
-    my @images;
+    my @images; my %images;
     my $main_image_filename = '';
     while (my ($image_id, $extension, $main, $notes) = $sth->fetchrow_array()) {
         my %row;
         $row{NOTES} = $notes;
         $row{ID} = $image_id;
-        $row{FILENAME} = "${image_id}.${extension}";
+        my $filename = "${image_id}.${extension}";
+        $row{FILENAME} = $filename;
         if ( $main ) {
             $main_image_filename = "${image_id}.${extension}";
         }
@@ -277,8 +279,14 @@ sub editIssue {
         }
         $row{MAIN} = $main;
         push(@images, \%row);
+        $images{$image_id} = {
+            notes    => $notes,
+            filename => $filename,
+            main     => $main,
+        };
     }
     $t->param(IMAGES => \@images);
+    $t->param(IMAGES_JSON => to_json(\%images));
     $t->param(MAIN_IMAGE_FILENAME => $main_image_filename);
     $t->param(THUMB_URL => $issue_ref->{thumb_url});           # NOTE: deprecated
     $t->param(IMAGE_PAGE_URL => $issue_ref->{image_page_url}); # NOTE: deprecated
@@ -520,6 +528,8 @@ sub saveImage {
     my $id = $cgi->param('id') || 0;
     my $item_id = $cgi->param('item_id') || 0;
     my $notes = $cgi->param('notes') || 0;
+    my $main = $cgi->param('main') ;
+    $main = $main eq 'on' ? 1 : 0;
     my $message = '';
     my $ext = '';
     if ( $cgi->param('image') ) {
@@ -527,14 +537,21 @@ sub saveImage {
             $ext = $1;
         }
     }
+    # clear existing 'main' image if this image is set to be the main
+    if ( $main ) {
+        my $sql = <<~"SQL";
+        UPDATE comics_images SET main = 0 WHERE item_id = ?
+        SQL
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $item_id);
+    }
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE comics_images
-        SET notes = ?
+        SET notes = ?, main = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $notes, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $notes, $main, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
@@ -542,11 +559,11 @@ sub saveImage {
     else {
         my $sql = <<~"SQL";
         INSERT INTO comics_images
-        (notes, item_id, extension) 
+        (notes, item_id, extension, main) 
         VALUES 
-        (?, ?, ?)
+        (?, ?, ?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id, $ext);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id, $ext, $main);
         if ( $rows_inserted != 1 ) {
             print STDERR "ERROR: $rows_inserted rows inserted.\n";
         }
@@ -556,7 +573,7 @@ sub saveImage {
         # grab the automatically incremented id that was generated
         $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
     }
-    # NOTE: this part should go after db insert so we can use the id from that for filename
+    # NOTE: this goes after db insert so we can use the id from that for filename
     if ( $cgi->param('image') ) {
         open (FILE, "> $ENV{DOCUMENT_ROOT}/images/${id}.${ext}") or die "$!";
         binmode FILE;
@@ -606,16 +623,6 @@ sub saveIssue {
         }
         # grab the automatically incremented id that was generated
         $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
-    }
-    # handle cover file, if added
-    if ( $cgi->param('cover') ) {
-        open (FILE, "> $ENV{DOCUMENT_ROOT}/comics/${id}.jpg") or die "$!";
-        binmode FILE;
-        my $cover = $cgi->param('cover');
-        while ( <$cover> ) {
-            print FILE;
-        }
-        close FILE;
     }
     my $ungraded = 1;
     $ungraded = 0 if $grade_id;

@@ -38,8 +38,6 @@
     </TMPL_LOOP>
     </select><br><br>
 
-    Cover Image: <input type="file" name="cover"><br><br>
-
     Notes: <input style="width: 85%;" type="text" name="notes" value="<TMPL_VAR NOTES>"> <br><br>
 
     <input type="hidden" name="id" value="<TMPL_VAR ID>">
@@ -50,21 +48,6 @@
     <br><br>
     
     <hr>
-    <h2>Add Image</h2>
-    
-    <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
-
-    Image: <input type="file" name="image"><br><br>
-
-    Notes: <input style="width: 85%;" type="text" name="notes" value="<TMPL_VAR IMAGE_NOTES>"> <br><br>
-
-    <input type="hidden" name="item_id" value="<TMPL_VAR ID>">
-    <input type="hidden" name="action" value="saveImage">
-    <input type="hidden" name="id" value="<TMPL_VAR IMAGE_ID>">
-    <input type="submit" value="Save Image" style="font-size: 1.4em;">
-    </form>
-
-    <hr>
 
     <h2>Images</h2>
 
@@ -72,7 +55,7 @@
 
     <TMPL_LOOP IMAGES>
         <div align="center">
-            <img style="height: 140px;" src="/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>', <TMPL_VAR ID>);">
+            <img style="max-width: 100%; max-height: 225px;" src="/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>', <TMPL_VAR ID>);">
             <TMPL_IF MAIN><br>(main image)</TMPL_IF>
             <TMPL_IF NOTES><br><TMPL_VAR NOTES></TMPL_IF>
         </div>
@@ -82,18 +65,31 @@
 
 </div>
 
-<div style="float: right; width: 50%; text-align: center; height: 800px;">
-    
+<div style="float: right; width: 50%; text-align: center;">
+   
     <TMPL_IF MAIN_IMAGE_FILENAME>
-        <img id="bigimage" style="max-width: 100%;" src="/images/<TMPL_VAR MAIN_IMAGE_FILENAME>">
+        <img id="bigimage" style="max-width: 100%; max-height: 900px;" src="/images/<TMPL_VAR MAIN_IMAGE_FILENAME>">
         <br>
     </TMPL_IF>
     
-    <span id="edit_button"></span>
-    &nbsp;&nbsp;
     <span id="delete_button"></span>
 
+    <h2><span id="image_verb">Add</span> Image</h2>
+    
+    <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
+
+    Image: <input type="file" name="image"> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_main" name="main"> Main Image<br><br>
+
+    Notes: <input style="width: 60%;" type="text" id="edit_image_notes" name="notes" value="<TMPL_VAR IMAGE_NOTES>"> <br><br>
+
+    <input type="hidden" name="item_id" value="<TMPL_VAR ID>">
+    <input type="hidden" name="action" value="saveImage">
+    <input type="hidden" id="edit_image_id" name="id" value="">
+    <input type="submit" value="Save Image" style="font-size: 1.4em;">
+    </form>
+
 </div>
+
 <div style="clear: both;"></div>
 
 <form id="delete_form">
@@ -104,6 +100,8 @@
 
 <script>
 
+var images = <TMPL_VAR IMAGES_JSON>;
+
 function deleteImage(id) {
     const confirmed = confirm("Really delete this image?");
     if ( confirmed ) {
@@ -112,13 +110,17 @@ function deleteImage(id) {
     }
 }
 
-function editImage(id) {
-
-}
-
 function setImage(filename, id) {
+    if ( images[id].main == 1 ) {
+        document.getElementById("edit_image_main").checked = true;
+    }
+    else {
+        document.getElementById("edit_image_main").checked = false;
+    }
+    document.getElementById("edit_image_notes").value = images[id].notes;
+    document.getElementById('edit_image_id').value = id;
+    document.getElementById('image_verb').innerHTML = 'Edit';
     document.getElementById('bigimage').src = '/images/' + filename;
-    document.getElementById('edit_button').innerHTML = '<button onClick="editImage(' + id + ');">Edit Image</button>';
     document.getElementById('delete_button').innerHTML = '<button onClick="deleteImage(' + id + ');">Delete</button>';
 }
 
