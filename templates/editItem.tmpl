@@ -50,7 +50,7 @@
     <br><br>
     
     <hr>
-    <h2>Images</h2>
+    <h2>Add Image</h2>
     
     <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
@@ -64,19 +64,15 @@
     <input type="submit" value="Save Image" style="font-size: 1.4em;">
     </form>
 
-</div>
+    <hr>
 
-<div style="float: right; width: 50%; text-align: center;">
-    
-    <TMPL_IF MAIN_IMAGE_FILENAME>
-        <img id="bigimage" style="max-width: 100%; height: 800px;" src="/images/<TMPL_VAR MAIN_IMAGE_FILENAME>">
-    </TMPL_IF>
+    <h2>Images</h2>
 
     <div class="images_grid">
 
     <TMPL_LOOP IMAGES>
         <div align="center">
-            <img style="height: 120px;" src="/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>');">
+            <img style="height: 140px;" src="/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>', <TMPL_VAR ID>);">
             <TMPL_IF MAIN><br>(main image)</TMPL_IF>
             <TMPL_IF NOTES><br><TMPL_VAR NOTES></TMPL_IF>
         </div>
@@ -85,12 +81,45 @@
     </div>
 
 </div>
+
+<div style="float: right; width: 50%; text-align: center; height: 800px;">
+    
+    <TMPL_IF MAIN_IMAGE_FILENAME>
+        <img id="bigimage" style="max-width: 100%;" src="/images/<TMPL_VAR MAIN_IMAGE_FILENAME>">
+        <br>
+    </TMPL_IF>
+    
+    <span id="edit_button"></span>
+    &nbsp;&nbsp;
+    <span id="delete_button"></span>
+
+</div>
 <div style="clear: both;"></div>
+
+<form id="delete_form">
+<input type="hidden" name="action" value="deleteImage">
+<input type="hidden" id="delete_image_id" name="id" value="">
+<input type="hidden" name="item_id" value="<TMPL_VAR ID>">
+</form>
 
 <script>
 
-function setImage(filename) {
+function deleteImage(id) {
+    const confirmed = confirm("Really delete this image?");
+    if ( confirmed ) {
+        document.getElementById('delete_image_id').value = id;
+        document.getElementById('delete_form').submit();
+    }
+}
+
+function editImage(id) {
+
+}
+
+function setImage(filename, id) {
     document.getElementById('bigimage').src = '/images/' + filename;
+    document.getElementById('edit_button').innerHTML = '<button onClick="editImage(' + id + ');">Edit Image</button>';
+    document.getElementById('delete_button').innerHTML = '<button onClick="deleteImage(' + id + ');">Delete</button>';
 }
 
 </script>

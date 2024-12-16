@@ -133,6 +133,48 @@ sub collectionInterface {
     print $output;
 }
 
+=head2 deleteImage
+
+Delete an image, given its id.
+
+=cut
+
+sub deleteImage {
+    my $id = $cgi->param('id');
+    my $item_id = $cgi->param('item_id');
+    # item
+    my $sql = <<~"SQL";
+    SELECT * FROM comics WHERE id = ?
+    SQL
+    my $issue_ref = $dbh->selectrow_hashref($sql, undef, $item_id);
+    # image
+    my $sql = <<~"SQL";
+    SELECT * FROM comics_images WHERE id = ?
+    SQL
+    my $image_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    # delete
+    my $delete = <<~"SQL";
+    DELETE FROM comics_images WHERE id = ?
+    SQL
+    my $sth = $dbh->prepare($delete);
+    $sth->execute($id);
+    # delete file
+    my $file = "${id}\.$image_ref->{extension}";
+    if ( -e "$ENV{DOCUMENT_ROOT}/images/$file" ) {
+        if ( unlink "$ENV{DOCUMENT_ROOT}/images/$file" ) {
+            print STDERR "File '$file' deleted successfully.\n";
+        } 
+        else {
+            print STDERR "Failed to delete '$file': $!\n";
+        }
+    }
+    else {
+        print STDERR "'$file' does not exist.\n";
+    }
+    my $message = qq |Image deleted.|;
+    editIssue($item_id, $issue_ref->{title_id});
+}
+
 =head2 deleteIssue
 
 Delete an issue, given its id.
@@ -190,7 +232,7 @@ Screen on which to edit an issue record.
 
 sub editIssue {
     my $id = $_[0] || $cgi->param('id');
-    my $title_id = $cgi->param('title_id') || '';
+    my $title_id = $_[1] || $cgi->param('title_id') || '';
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
     my $sql = <<~"SQL";
     SELECT * FROM comics WHERE id = ?
@@ -225,6 +267,7 @@ sub editIssue {
     while (my ($image_id, $extension, $main, $notes) = $sth->fetchrow_array()) {
         my %row;
         $row{NOTES} = $notes;
+        $row{ID} = $image_id;
         $row{FILENAME} = "${image_id}.${extension}";
         if ( $main ) {
             $main_image_filename = "${image_id}.${extension}";
