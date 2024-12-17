@@ -357,22 +357,13 @@ sub mainInterface {
     my %arg = @_;
     my $message = $arg{message};
     my $title_id = $arg{title_id};
-    my $ungraded = $arg{ungraded} || '';
     $title_id = $cgi->param('title_id') unless $title_id;
     my $year=$cgi->param('year');
-    $ungraded=$cgi->param('ungraded') unless $ungraded;
     my $t = HTML::Template->new(
         filename => 'templates/mainInterface.tmpl',
     );
     my @where_conditions;
     my $limit = 200;
-    if ( ! $ungraded ) {
-        push(@where_conditions, "g.id IS NOT NULL");
-    }
-    else {
-        push(@where_conditions, "g.id IS NULL");
-        $limit = 500;
-    } 
     if ( $year ) {
         push(@where_conditions, "year = '$year'");
     }
@@ -381,9 +372,9 @@ sub mainInterface {
     } 
     my $where = "WHERE" if @where_conditions; 
     my $i = 0;
-    foreach my $where_condition (@where_conditions) {
+    foreach my $where_condition ( @where_conditions ) {
         $i++;
-        if ($i == 1) {
+        if ( $i == 1 ) {
             $where .= " $where_condition";
         }
         else {
@@ -428,7 +419,7 @@ sub mainInterface {
     # get comics
     $select = <<~"SQL";
     SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, 
-    item.id AS the_id, g.grade_abbrev, image.id, image.main,
+    item.id AS the_id, g.grade_abbrev, image.id, image.main, image.extension, 
     (SELECT COUNT(*) FROM comics_images WHERE item_id = the_id)
     FROM comics AS item
     LEFT JOIN comics_images AS image
@@ -446,7 +437,7 @@ sub mainInterface {
     $sth->execute;
     my $count = 0;
     my @comics; my @numbers;
-    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_count) = $sth->fetchrow_array()) {
+    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_extension, $image_count) = $sth->fetchrow_array()) {
         $count++;
         my %row;
         # $row{TITLE} = $title;
@@ -460,9 +451,9 @@ sub mainInterface {
         # method is being used
         #my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
         $row{OFFSITE} = 1;
-        my $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.jpg";
+        my $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.${image_extension}";
         if ( -e $localcover ) {
-            $thumb_url = "/images/${image_id}.jpg";
+            $thumb_url = "/images/${image_id}.${image_extension}";
             $row{OFFSITE} = 0;
         }
         if ( $image_count > 1 ) {
@@ -498,7 +489,6 @@ sub mainInterface {
     $t->param(COMICS => \@comics);
     #$t->param(MESSAGE => $message . "\n\n$select");
     $t->param(MESSAGE => $message);
-    $t->param(UNGRADED => $ungraded);
     my $output = $t->output;
     print "Content-type: text/html\n\n";
     print $output;

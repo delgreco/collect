@@ -83,8 +83,6 @@ function editIssue(id) {
 <div style="float: left;">
 <form method="post" action="<TMPL_VAR SCRIPT_NAME>">
 
-    <input type="checkbox" name="ungraded" <TMPL_IF UNGRADED>CHECKED</TMPL_IF>> ungraded &nbsp;&nbsp;    
-
     <select name="title_id">
     <option value="">select title...
     <TMPL_LOOP TITLES>
