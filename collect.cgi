@@ -163,7 +163,7 @@ sub deleteImage {
     my $file = "${id}\.$image_ref->{extension}";
     if ( -e "$ENV{DOCUMENT_ROOT}/images/$file" ) {
         if ( unlink "$ENV{DOCUMENT_ROOT}/images/$file" ) {
-            print STDERR "File '$file' deleted successfully.\n";
+            #print STDOUT "File '$file' deleted successfully.\n";
         } 
         else {
             print STDERR "Failed to delete '$file': $!\n";
@@ -186,22 +186,47 @@ Because we also have a Flickr page for the issue, send ourselves an email to rem
 
 sub deleteIssue {
     my $id = $cgi->param('id');
-    # mail the Flickr deletion reminder
     my $sql = <<~"SQL";
     SELECT * FROM comics WHERE id = ?
     SQL
-    my $issue_ref = $dbh->selectrow_hashref($sql, undef, $id);
-    my $output = `echo 'Please delete $issue_ref->{image_page_url}' | mail -s 'issue deleted; Flickr deletion reminder' marcus\@mindmined.com`;
-    # now delete
+    my $item_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    # delete item
     my $delete = <<~"SQL";
     DELETE FROM comics WHERE id = ?
     SQL
-    my $sth = $dbh->prepare($delete) || die "prepare: $delete: $DBI::errstr";
-    $sth->execute($id) || die "execute: $delete: $DBI::errstr";
-    my $message = qq |Issue deleted.|;
+    my $sth = $dbh->prepare($delete);
+    $sth->execute($id);
+    # loop through images and delete files
+    my $select = <<~"SQL";
+    SELECT id FROM comics_images 
+    WHERE item_id = ?
+    SQL
+    my $sth = $dbh->prepare($select);
+    $sth->execute($id);
+    while (my ($image_id, $extension) = $sth->fetchrow_array()) {
+        my $filepath = "$ENV{DOCUMENT_ROOT}/images/${image_id}.${extension}";
+        if ( -e $filepath ) {
+            if ( unlink $filepath ) {
+                #print STDOUT "File '$filepath' deleted successfully.\n";
+            } 
+            else {
+                print STDERR "Failed to delete '$filepath': $!\n";
+            }
+        }
+        else {
+            print STDERR "'$filepath' does not exist.\n";
+        }
+    }
+    # delete images
+    $delete = <<~"SQL";
+    DELETE FROM comics_images WHERE item_id = ?
+    SQL
+    $sth = $dbh->prepare($delete);
+    $sth->execute($id);
+    my $message = qq |Item deleted.|;
     mainInterface( 
         message  => $message, 
-        title_id => $issue_ref->{title_id}, 
+        title_id => $item_ref->{title_id}, 
     );
 }
 
@@ -257,7 +282,7 @@ sub editIssue {
     # }
     # show all images
     my $select = <<~"SQL";
-    SELECT id, extension, main, notes
+    SELECT id, extension, main, notes, stock
     FROM comics_images
     WHERE item_id = ?
     SQL
@@ -265,7 +290,7 @@ sub editIssue {
     $sth->execute($id);
     my @images; my %images;
     my $main_image_filename = '';
-    while (my ($image_id, $extension, $main, $notes) = $sth->fetchrow_array()) {
+    while (my ($image_id, $extension, $main, $notes, $stock) = $sth->fetchrow_array()) {
         my %row;
         $row{NOTES} = $notes;
         $row{ID} = $image_id;
@@ -277,12 +302,17 @@ sub editIssue {
         else {
             $main = 0;
         }
+        my $path = "$ENV{DOCUMENT_ROOT}/images";
+        my $size_kb = -s "$path/$filename" ? int( ( -s "$path/$filename" ) / 1024 ) : 0;
         $row{MAIN} = $main;
+        $row{STOCK} = $stock;
+        $row{SIZE_KB} = $size_kb;
         push(@images, \%row);
         $images{$image_id} = {
             notes    => $notes,
             filename => $filename,
             main     => $main,
+            stock    => $stock,
         };
     }
     $t->param(IMAGES => \@images);
@@ -528,8 +558,10 @@ sub saveImage {
     my $id = $cgi->param('id') || 0;
     my $item_id = $cgi->param('item_id') || 0;
     my $notes = $cgi->param('notes') || 0;
-    my $main = $cgi->param('main') ;
+    my $main = $cgi->param('main');
+    my $stock = $cgi->param('stock');
     $main = $main eq 'on' ? 1 : 0;
+    $stock = $stock eq 'on' ? 1 : 0;
     my $message = '';
     my $ext = '';
     if ( $cgi->param('image') ) {
@@ -548,10 +580,10 @@ sub saveImage {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE comics_images
-        SET notes = ?, main = ?
+        SET notes = ?, main = ?, stock = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $notes, $main, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $notes, $main, $stock, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
@@ -559,11 +591,11 @@ sub saveImage {
     else {
         my $sql = <<~"SQL";
         INSERT INTO comics_images
-        (notes, item_id, extension, main) 
+        (notes, item_id, extension, main, stock)
         VALUES 
-        (?, ?, ?, ?)
+        (?, ?, ?, ?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id, $ext, $main);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id, $ext, $main, $stock);
         if ( $rows_inserted != 1 ) {
             print STDERR "ERROR: $rows_inserted rows inserted.\n";
         }

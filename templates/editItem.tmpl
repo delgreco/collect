@@ -49,19 +49,23 @@
     
     <hr>
 
-    <h2>Images</h2>
+    <TMPL_IF IMAGES>
+        <h2>Images</h2>
 
-    <div class="images_grid">
+        <div class="images_grid">
 
-    <TMPL_LOOP IMAGES>
-        <div align="center">
-            <img style="max-width: 100%; max-height: 225px;" src="/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>', <TMPL_VAR ID>);">
-            <TMPL_IF MAIN><br>(main image)</TMPL_IF>
-            <TMPL_IF NOTES><br><TMPL_VAR NOTES></TMPL_IF>
+        <TMPL_LOOP IMAGES>
+            <div align="center">
+                <img style="max-width: 100%; max-height: 225px;" src="/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>', <TMPL_VAR ID>);"><br>
+                <TMPL_VAR SIZE_KB> KB
+                <TMPL_IF MAIN><br>(main)</TMPL_IF>
+                <TMPL_IF STOCK><br>(stock)</TMPL_IF>
+                <TMPL_IF NOTES><br><TMPL_VAR NOTES></TMPL_IF>
+            </div>
+        </TMPL_LOOP>
+
         </div>
-    </TMPL_LOOP>
-
-    </div>
+    </TMPL_IF>
 
 </div>
 
@@ -78,7 +82,7 @@
     
     <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
-    Image: <input type="file" name="image"> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_main" name="main"> Main Image<br><br>
+    Image: <input type="file" name="image"> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_main" name="main"> Main &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_stock" name="stock"> Stock<br><br>
 
     Notes: <input style="width: 60%;" type="text" id="edit_image_notes" name="notes" value="<TMPL_VAR IMAGE_NOTES>"> <br><br>
 
@@ -116,6 +120,12 @@ function setImage(filename, id) {
     }
     else {
         document.getElementById("edit_image_main").checked = false;
+    }
+    if ( images[id].stock == 1 ) {
+        document.getElementById("edit_image_stock").checked = true;
+    }
+    else {
+        document.getElementById("edit_image_stock").checked = false;
     }
     document.getElementById("edit_image_notes").value = images[id].notes;
     document.getElementById('edit_image_id').value = id;
