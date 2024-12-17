@@ -363,7 +363,6 @@ sub mainInterface {
     $ungraded=$cgi->param('ungraded') unless $ungraded;
     my $t = HTML::Template->new(
         filename => 'templates/mainInterface.tmpl',
-        die_on_bad_params => 0,
     );
     my @where_conditions;
     my $limit = 200;
@@ -428,7 +427,9 @@ sub mainInterface {
     }
     # get comics
     $select = <<~"SQL";
-    SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, item.id, g.grade_abbrev, image.id, image.main
+    SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, 
+    item.id AS the_id, g.grade_abbrev, image.id, image.main,
+    (SELECT COUNT(*) FROM comics_images WHERE item_id = the_id)
     FROM comics AS item
     LEFT JOIN comics_images AS image
     ON image.item_id = item.id
@@ -443,25 +444,18 @@ sub mainInterface {
     SQL
     $sth = $dbh->prepare($select);
     $sth->execute;
-    my $count = 0; my $colspan = 6; $i = 0;
+    my $count = 0;
     my @comics; my @numbers;
-    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id) = $sth->fetchrow_array()) {
-        $count++; $i++;
+    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_count) = $sth->fetchrow_array()) {
+        $count++;
         my %row;
-        if ( $i == 1 ) {
-            $row{OPEN_ROW} = 1;
-        }
-        if ( $i == $colspan ) {
-            $row{CLOSE_ROW} = 1;
-            $i = 0;
-        }
-        $row{TITLE} = $title;
+        # $row{TITLE} = $title;
         $row{ISSUE_NUM} = $issue_num;
         push(@numbers, $issue_num); # for finding missing issues below
         $row{YEAR} = $year;
         $row{GRADE_ABBREV} = $grade_abbrev;
         $row{NOTES} = $notes;
-        $row{IMAGE_PAGE_URL} = $image_page_url;
+        # $row{IMAGE_PAGE_URL} = $image_page_url;
         # override database value if new filesystem
         # method is being used
         #my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
@@ -470,6 +464,9 @@ sub mainInterface {
         if ( -e $localcover ) {
             $thumb_url = "/images/${image_id}.jpg";
             $row{OFFSITE} = 0;
+        }
+        if ( $image_count > 1 ) {
+            $row{IMAGE_COUNT} = $image_count;
         }
         $row{THUMB_URL} = $thumb_url;
         $row{ID} = $id;
