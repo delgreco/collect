@@ -451,7 +451,10 @@ sub mainInterface {
         # method is being used
         #my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
         $row{OFFSITE} = 1;
-        my $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.${image_extension}";
+        my $localcover = '';
+        if ( $image_id ) {
+            $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.${image_extension}";
+        } 
         if ( -e $localcover ) {
             $thumb_url = "/images/${image_id}.${image_extension}";
             $row{OFFSITE} = 0;
