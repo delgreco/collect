@@ -419,7 +419,7 @@ sub mainInterface {
     # get comics
     $select = <<~"SQL";
     SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, 
-    item.id AS the_id, g.grade_abbrev, image.id, image.main, image.extension, 
+    item.id AS the_id, g.grade_abbrev, image.id, image.main, image.extension, image.stock, 
     (SELECT COUNT(*) FROM comics_images WHERE item_id = the_id)
     FROM comics AS item
     LEFT JOIN comics_images AS image
@@ -437,7 +437,7 @@ sub mainInterface {
     $sth->execute;
     my $count = 0;
     my @comics; my @numbers;
-    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_extension, $image_count) = $sth->fetchrow_array()) {
+    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_extension, $stock, $image_count) = $sth->fetchrow_array()) {
         $count++;
         my %row;
         # $row{TITLE} = $title;
@@ -454,6 +454,8 @@ sub mainInterface {
         my $localcover = '';
         if ( $image_id ) {
             $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.${image_extension}";
+            my $size_kb = -s "$localcover" ? int( ( -s "$localcover" ) / 1024 ) : 0;
+            $row{SIZE} = $size_kb;
         } 
         if ( -e $localcover ) {
             $thumb_url = "/images/${image_id}.${image_extension}";

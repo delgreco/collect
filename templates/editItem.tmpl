@@ -71,26 +71,30 @@
 
 <div style="float: right; width: 50%; text-align: center;">
    
-    <TMPL_IF MAIN_IMAGE_FILENAME>
-        <img id="bigimage" style="max-width: 100%; max-height: 900px;" src="/images/<TMPL_VAR MAIN_IMAGE_FILENAME>">
-        <br>
+    <TMPL_IF ID>
+
+        <TMPL_IF MAIN_IMAGE_FILENAME>
+            <img id="bigimage" style="max-width: 100%; max-height: 900px;" src="/images/<TMPL_VAR MAIN_IMAGE_FILENAME>">
+            <br>
+        </TMPL_IF>
+        
+        <span id="delete_button"></span>
+
+        <h2><span id="image_verb">Add</span> Image</h2>
+        
+        <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
+
+        Image: <input type="file" name="image"> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_main" name="main"> <label for="edit_image_main">Main</label> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_stock" name="stock"> <label for="edit_image_stock">Stock</label><br><br>
+
+        Notes: <input style="width: 60%;" type="text" id="edit_image_notes" name="notes" value="<TMPL_VAR IMAGE_NOTES>"> <br><br>
+
+        <input type="hidden" name="item_id" value="<TMPL_VAR ID>">
+        <input type="hidden" name="action" value="saveImage">
+        <input type="hidden" id="edit_image_id" name="id" value="">
+        <input type="submit" value="Save Image" style="font-size: 1.4em;">
+        </form>
+
     </TMPL_IF>
-    
-    <span id="delete_button"></span>
-
-    <h2><span id="image_verb">Add</span> Image</h2>
-    
-    <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
-
-    Image: <input type="file" name="image"> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_main" name="main"> Main &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_stock" name="stock"> Stock<br><br>
-
-    Notes: <input style="width: 60%;" type="text" id="edit_image_notes" name="notes" value="<TMPL_VAR IMAGE_NOTES>"> <br><br>
-
-    <input type="hidden" name="item_id" value="<TMPL_VAR ID>">
-    <input type="hidden" name="action" value="saveImage">
-    <input type="hidden" id="edit_image_id" name="id" value="">
-    <input type="submit" value="Save Image" style="font-size: 1.4em;">
-    </form>
 
 </div>
 
