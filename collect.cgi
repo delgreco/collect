@@ -416,10 +416,10 @@ sub mainInterface {
     else {
         $order_by = 'year, issue_num';
     }
-    # get comics
+    # get items
     $select = <<~"SQL";
     SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, 
-    item.id AS the_id, g.grade_abbrev, image.id, image.main, image.extension, image.stock, 
+    item.id AS the_id, g.grade_abbrev, image.id, image.main, image.extension, image.stock, image.notes, 
     (SELECT COUNT(*) FROM comics_images WHERE item_id = the_id)
     FROM comics AS item
     LEFT JOIN comics_images AS image
@@ -437,7 +437,7 @@ sub mainInterface {
     $sth->execute;
     my $count = 0;
     my @comics; my @numbers;
-    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_extension, $stock, $image_count) = $sth->fetchrow_array()) {
+    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
         $count++;
         my %row;
         # $row{TITLE} = $title;
@@ -445,7 +445,7 @@ sub mainInterface {
         push(@numbers, $issue_num); # for finding missing issues below
         $row{YEAR} = $year;
         $row{GRADE_ABBREV} = $grade_abbrev;
-        $row{NOTES} = $notes;
+        $row{NOTES} = $notes || $image_notes;
         # $row{IMAGE_PAGE_URL} = $image_page_url;
         # override database value if new filesystem
         # method is being used
