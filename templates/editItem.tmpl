@@ -59,7 +59,7 @@
                 <img style="max-width: 100%; max-height: 225px;" src="/images/<TMPL_VAR FILENAME>" onClick="setImage('<TMPL_VAR FILENAME>', <TMPL_VAR ID>);"><br>
                 <TMPL_VAR SIZE_KB> KB
                 <TMPL_IF MAIN><br>(main)</TMPL_IF>
-                <TMPL_IF STOCK><br>(stock)</TMPL_IF>
+                <TMPL_IF STOCK><br><img src="/camera.webp" width="20" align="absmiddle"> stock</TMPL_IF>
                 <TMPL_IF NOTES><br><TMPL_VAR NOTES></TMPL_IF>
             </div>
         </TMPL_LOOP>

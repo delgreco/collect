@@ -21,9 +21,11 @@ a:visited {color:#00FFFF; text-decoration:none;}
 a:active  {color:#00FFFF; text-decoration:none;}
 a:hover   {color:#FF33CC; text-decoration:underline;}
 
+/*
 .img {
     width: 90%;
 }
+*/
 
 .grid {
     display: grid;
@@ -45,14 +47,36 @@ a:hover   {color:#FF33CC; text-decoration:underline;}
     margin: 10px;
 }
 
+/* individual gallery images */
+.image-container {
+  position: relative;
+  display: inline-block; /* Ensures the container fits the large image's dimensions */
+}
+
+.large-image {
+  display: block; /* Ensures no extra space below the image */
+}
+
+.small-image {
+  position: absolute;
+  top: 10px; /* Adjust this value for desired vertical padding */
+  right: 10px; /* Adjust this value for desired horizontal padding */
+  width: 10%; /* Set the desired width for the small image */
+  height: auto; /* Maintains aspect ratio */
+  border: 2px solid white; /* Optional: Adds a border around the small image */
+  border-radius: 50%; /* Optional: Makes the small image circular */
+}
+
 /* Mobile: 1 column */
 @media (max-width: 1000px) {
     .grid {
         grid-template-columns: 1fr; /* 1 column on screens smaller than 768px */
     }
+    /*
     .img {
         width: 80%;
     }
+    */
 }
 
 </style>
@@ -89,7 +113,7 @@ function editIssue(id) {
         <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR TITLE>
     </TMPL_LOOP>
     </select> &nbsp;&nbsp;
-    
+   
     <select name="year">
     <option value="">all years...
     <TMPL_LOOP YEARS>
@@ -110,5 +134,4 @@ function editIssue(id) {
 </div>
 
 <div style="clear: both;"></div>
-
 

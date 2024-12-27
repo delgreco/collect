@@ -440,7 +440,7 @@ sub mainInterface {
     while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
         $count++;
         my %row;
-        # $row{TITLE} = $title;
+        $row{STOCK} = $stock;
         $row{ISSUE_NUM} = $issue_num;
         push(@numbers, $issue_num); # for finding missing issues below
         $row{YEAR} = $year;
