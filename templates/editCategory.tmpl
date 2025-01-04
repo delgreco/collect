@@ -1,7 +1,8 @@
 <TMPL_INCLUDE NAME="header.tmpl">
 
 <div style="float: left; width: 50%;">
-    <h2><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Category / Title</h2>
+ 
+     <h2><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Category / Title</h2>
 
     <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
@@ -13,7 +14,7 @@
     </form>
 
     <br><br><br>
-    <form method="post" action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return confirm('Really delete this category?');">
+    <form method="post" action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return confirm('Really delete category \'<TMPL_VAR CATEGORY>\'?');">
     <input type="hidden" name="action" value="deleteCategory">
     <input type="hidden" name="id" value="<TMPL_VAR ID>">
     <input type="submit" value="Delete">

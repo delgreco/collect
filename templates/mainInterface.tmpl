@@ -27,7 +27,8 @@
     </div>
 
 <TMPL_ELSE>
-    <center><font color="red">No matches</font></center>
+    <center><font color="red">No matches for <a href="<TMPL_VAR SCRIPT_NAME>?action=editCategory&id=<TMPL_VAR TITLE_ID>"><TMPL_VAR TITLE></a></font></center>
+    <br><br>
 </TMPL_IF>
 
 <TMPL_INCLUDE NAME="footer.tmpl">

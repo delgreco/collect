@@ -124,14 +124,44 @@ sub collectionInterface {
     );
     my $average_year = _getAverageYear();
     my $average_grade = _getAverageGrade();
-    $t->param(AVERAGE_YEAR => $average_year);
-    $t->param(AVERAGE_GRADE => $average_grade);
+    # $t->param(AVERAGE_YEAR => $average_year);
+    # $t->param(AVERAGE_GRADE => $average_grade);
     my $total_collection_count = _getTotalCollectionCount();
     $t->param(TOTAL_COLLECTION_COUNT => $total_collection_count);
     $t->param(MESSAGE => $message);
     my $output = $t->output;
     print "Content-type: text/html\n\n";
     print $output;
+}
+
+=head2 deleteCategory
+
+Delete an category, given its id, as long as it is associated to no items.
+
+=cut
+
+sub deleteCategory {
+    my $id = $cgi->param('id');
+    # make sure it's ok to do this
+    my $sql = <<~"SQL";
+    SELECT COUNT(*) FROM comics WHERE title_id = ?
+    SQL
+    my $sth = $dbh->prepare($sql);
+    $sth->execute($id);
+    my ($items_count) = $sth->fetchrow_array();
+    if ( $items_count ) {
+        my $message = qq |ERROR: no action taken.  This category still has items associated.|;
+    }
+    else {
+        # delete
+        my $delete = <<~"SQL";
+        DELETE FROM comics_titles WHERE id = ?
+        SQL
+        my $sth = $dbh->prepare($delete);
+        $sth->execute($id);
+        my $message = qq |Category deleted.|;
+    }
+    mainInterface();
 }
 
 =head2 deleteImage
@@ -237,7 +267,7 @@ Screen on which to edit a category /title.
 =cut
 
 sub editCategory {
-    my $id = $cgi->param('id');
+    my $id = $_[0] || $cgi->param('id');
     my $t = HTML::Template->new(filename => 'templates/editCategory.tmpl');
     my $sql = <<~"SQL";
     SELECT * FROM comics_titles WHERE id = ?
@@ -246,6 +276,10 @@ sub editCategory {
     $t->param(CATEGORY => $cat_ref->{title});
     $t->param(ID => $id);
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
+    $t = _getTitlesDropdown(
+        template          => $t,
+        selected_title_id => $id,
+    );
     print "Content-type: text/html\n\n";
     print $t->output;
 }
@@ -824,19 +858,21 @@ sub _getTitlesDropdown {
     my $selected_title_id = $arg{selected_title_id};
     my @titles;
     my $select = <<~"SQL";
-    SELECT DISTINCT title, comics_titles.id 
+    SELECT DISTINCT title, comics_titles.id AS the_id,
+    (SELECT COUNT(*) FROM comics WHERE title_id = the_id)
     FROM comics_titles 
     ORDER BY title
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
-    while (my ($this_title, $id) = $sth->fetchrow_array()) {
+    while (my ($this_title, $id, $count) = $sth->fetchrow_array()) {
         my %row;
         if ( $selected_title_id && $selected_title_id eq $id ) {
             $row{SELECTED} = 'SELECTED';
         }
         $row{TITLE} = $this_title;
         $row{ID} = $id;
+        $row{COUNT} = $count;
         push(@titles, \%row);
     }
     $t->param(TITLES => \@titles);
