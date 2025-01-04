@@ -51,10 +51,12 @@ a:hover   {color:#FF33CC; text-decoration:underline;}
 .image-container {
   position: relative;
   display: inline-block; /* Ensures the container fits the large image's dimensions */
+  width: 100%;
 }
 
 .large-image {
   display: block; /* Ensures no extra space below the image */
+  width: 95%;
 }
 
 .small-image {
@@ -93,7 +95,7 @@ function editIssue(id) {
 </head>
 <body>
 
-<div style="float: left; width: 50%;">
+<div style="float: left; width: 40%;">
 
     <h1>Collect<TMPL_IF TOTAL_COLLECTION_COUNT> - <TMPL_VAR TOTAL_COLLECTION_COUNT> Items</TMPL_IF></h1>
 
@@ -106,6 +108,8 @@ function editIssue(id) {
 
 <div style="float: left;">
 <form method="post" action="<TMPL_VAR SCRIPT_NAME>">
+
+    <input type="checkbox" name="oldest" <TMPL_IF OLDEST>CHECKED</TMPL_IF>> show oldest items &nbsp;&nbsp;
 
     <select name="title_id">
     <option value="">select title...

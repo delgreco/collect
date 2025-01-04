@@ -359,11 +359,18 @@ sub mainInterface {
     my $title_id = $arg{title_id};
     $title_id = $cgi->param('title_id') unless $title_id;
     my $year=$cgi->param('year');
+    my $oldest=$cgi->param('oldest');
     my $t = HTML::Template->new(
         filename => 'templates/mainInterface.tmpl',
     );
     my @where_conditions;
-    my $limit = 200;
+    my $limit = 50;
+    if ( $title_id ) {
+        # try to show all items within a title/cat,
+        # which currently do not exceed 300.
+        # TODO: add pagination to scale
+        $limit = 300;
+    }
     if ( $year ) {
         push(@where_conditions, "year = '$year'");
     }
@@ -413,8 +420,11 @@ sub mainInterface {
     if ( $title_id ) {
         $order_by = 'issue_num';
     }
-    else {
+    elsif ( $oldest ) {
         $order_by = 'year, issue_num';
+    }
+    else {
+        $order_by = 'added DESC';
     }
     # get items
     $select = <<~"SQL";
@@ -431,7 +441,8 @@ sub mainInterface {
     $where 
     GROUP BY item.id, image.id
     HAVING image.main = 1 OR image.main IS NULL
-    ORDER BY $order_by LIMIT $limit
+    ORDER BY $order_by 
+    LIMIT $limit
     SQL
     $sth = $dbh->prepare($select);
     $sth->execute;
@@ -490,6 +501,7 @@ sub mainInterface {
         $year = "all years";
     }
     $t->param(YEAR => $year);
+    $t->param(OLDEST => $oldest);
     $t->param(YEARS => \@years);
     $t->param(COMICS => \@comics);
     #$t->param(MESSAGE => $message . "\n\n$select");
@@ -634,9 +646,9 @@ sub saveIssue {
     else {
         my $sql = <<~"SQL";
         INSERT INTO comics
-        (title_id, issue_num, year, thumb_url, image_page_url, notes, grade_id) 
+        (title_id, issue_num, year, thumb_url, image_page_url, notes, grade_id, added) 
         VALUES 
-        (?, ?, ?, ?, ?, ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, NOW())
         SQL
         my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id);
         if ( $rows_inserted != 1 ) {
@@ -812,12 +824,12 @@ sub _getTitlesDropdown {
     my $selected_title_id = $arg{selected_title_id};
     my @titles;
     my $select = <<~"SQL";
-    SELECT DISTINCT title, comics_titles.id FROM comics_titles 
-    JOIN comics ON comics_titles.id = comics.title_id
+    SELECT DISTINCT title, comics_titles.id 
+    FROM comics_titles 
     ORDER BY title
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
     while (my ($this_title, $id) = $sth->fetchrow_array()) {
         my %row;
         if ( $selected_title_id && $selected_title_id eq $id ) {
