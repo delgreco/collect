@@ -23,7 +23,9 @@
     <TMPL_LOOP TITLES>
         <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR TITLE>
     </TMPL_LOOP>
-    </select><br><br>
+    </select> <TMPL_IF TITLE_ID><a href="<TMPL_VAR SCRIPT_NAME>?action=editCategory&id=<TMPL_VAR TITLE_ID>">edit</a></TMPL_IF>
+    
+    <br><br>
 
     Issue #: <input type="text" size="6" name="issue_num" value="<TMPL_VAR ISSUE_NUM>"> &nbsp;&nbsp;&nbsp;&nbsp; Year: <input type="text" name="year" value="<TMPL_VAR YEAR>"><br><br>
 

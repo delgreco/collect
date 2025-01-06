@@ -92,8 +92,8 @@ sub collectionInterface {
     my $select = <<~"SQL";
     SELECT title, id FROM comics_titles ORDER BY title
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
     my @titles;
     while (my ($title, $title_id) = $sth->fetchrow_array()) {
         my %row;
@@ -104,8 +104,8 @@ sub collectionInterface {
         SELECT id, issue_num, image_page_url 
         FROM comics WHERE title_id = ? ORDER BY issue_num
         SQL
-        my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-        $sth->execute($title_id) || die "execute: $select: $DBI::errstr";
+        my $sth = $dbh->prepare($select);
+        $sth->execute($title_id);
         my @issues;
         while (my ($id, $issue_num, $image_page_url) = $sth->fetchrow_array()) {
             my %row;
@@ -203,7 +203,7 @@ sub deleteImage {
         print STDERR "'$file' does not exist.\n";
     }
     my $message = qq |Image deleted.|;
-    editIssue($item_id, $issue_ref->{title_id});
+    editItem($item_id, $issue_ref->{title_id});
 }
 
 =head2 deleteIssue
@@ -280,36 +280,46 @@ sub editCategory {
         template          => $t,
         selected_title_id => $id,
     );
+    $t = _getTypesDropdown(
+        template      => $t,
+        selected_type => $cat_ref->{type},
+    );
     print "Content-type: text/html\n\n";
     print $t->output;
 }
 
-=head2 editIssue()
+=head2 editItem()
 
 Screen on which to edit an issue record.
 
 =cut
 
-sub editIssue {
+sub editItem {
     my $id = $_[0] || $cgi->param('id');
     my $title_id = $_[1] || $cgi->param('title_id') || '';
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
+    # get item
     my $sql = <<~"SQL";
     SELECT * FROM comics WHERE id = ?
     SQL
-    my $issue_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    my $item_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    # get category
+    $sql = <<~"SQL";
+    SELECT * FROM comics_titles WHERE id = ?
+    SQL
+    my $cat_ref = $dbh->selectrow_hashref($sql, undef, $item_ref->{title_id});
     $t = _getTitlesDropdown(
         template => $t,
-        selected_title_id => $title_id || $issue_ref->{title_id},
+        selected_title_id => $title_id || $item_ref->{title_id},
     );
     $t = _getGradesDropdown(
         template => $t,
-        selected_grade_id => $issue_ref->{grade_id},
+        selected_grade_id => $item_ref->{grade_id},
     );
-    $t->param(ISSUE_NUM => $issue_ref->{issue_num});
+    $t->param(ISSUE_NUM => $item_ref->{issue_num});
     # override database value if new filesystem
     # method is being used
-    $t->param(YEAR => $issue_ref->{year});
+    $t->param(YEAR => $item_ref->{year});
     # my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
     # if ( -e $localcover ) {
     #     $issue_ref->{thumb_url} = "/images/${id}.jpg";
@@ -352,10 +362,11 @@ sub editIssue {
     $t->param(IMAGES => \@images);
     $t->param(IMAGES_JSON => to_json(\%images));
     $t->param(MAIN_IMAGE_FILENAME => $main_image_filename);
-    $t->param(THUMB_URL => $issue_ref->{thumb_url});           # NOTE: deprecated
-    $t->param(IMAGE_PAGE_URL => $issue_ref->{image_page_url}); # NOTE: deprecated
-    $t->param(NOTES => $issue_ref->{notes});
+    $t->param(THUMB_URL => $item_ref->{thumb_url});           # NOTE: deprecated
+    $t->param(IMAGE_PAGE_URL => $item_ref->{image_page_url}); # NOTE: deprecated
+    $t->param(NOTES => $item_ref->{notes});
     $t->param(ID => $id);
+    $t->param(TITLE_ID => $title_id || $item_ref->{title_id});
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     print "Content-type: text/html\n\n";
     print $t->output;
@@ -554,14 +565,15 @@ Add or update an issue from L</editCategory()>.
 sub saveCategory {
     my $id;
     my $category = $cgi->param('category');
+    my $type = $cgi->param('type');
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE comics_titles
-        SET title = ?
+        SET title = ?, `type` = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $category);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $category, $type, $id);
         if ( $rows_updated != 1 ) {
             $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
         }
@@ -569,11 +581,11 @@ sub saveCategory {
     else {
         my $sql = <<~"SQL";
         INSERT INTO comics_titles
-        (title) 
+        (title, `type`) 
         VALUES 
-        (?)
+        (?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $category);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $category, $type);
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
@@ -588,7 +600,7 @@ sub saveCategory {
 
 =head2 saveImage()
 
-Add or update an image from L</editIssue()>.
+Add or update an image from L</editItem()>.
 
 =cut
 
@@ -653,12 +665,12 @@ sub saveImage {
         }
         close FILE;
     }
-    editIssue( $item_id );
+    editItem( $item_id );
 }
 
 =head2 saveIssue()
 
-Add or update an issue from L</editIssue()>.
+Add or update an issue from L</editItem()>.
 
 =cut
 
@@ -748,8 +760,8 @@ sub _getAverageYear {
     my $select = <<~"SQL";
     SELECT ROUND(AVG(year)) FROM comics $where
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute(@bind_vars) || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute(@bind_vars);
     my ($average_year) = $sth->fetchrow_array();
     return $average_year;
 }
@@ -775,8 +787,8 @@ sub _getAverageGrade {
     ON g.id = grade_id
     $where
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute(@bind_vars) || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute(@bind_vars);
     my ($average_cgc_num) = $sth->fetchrow_array();
     return $average_cgc_num;
 }
@@ -797,8 +809,8 @@ sub _getGradesDropdown {
     FROM comics_grades
     ORDER BY cgc_number
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
     while (my ($grade, $grade_abbrev, $id, $cgc_number) = $sth->fetchrow_array()) {
         my %row;
         if ( $selected_grade_id eq $id ) {
@@ -824,8 +836,8 @@ sub _getLeastRecentYear {
     my $select = <<~"SQL";
     SELECT year FROM comics ORDER BY year ASC LIMIT 1
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
     my ($most_recent_year) = $sth->fetchrow_array();
     return $most_recent_year;
 }
@@ -840,8 +852,8 @@ sub _getMostRecentYear {
     my $select = <<~"SQL";
     SELECT year FROM comics ORDER BY year DESC LIMIT 1
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
     my ($most_recent_year) = $sth->fetchrow_array();
     return $most_recent_year;
 }
@@ -889,12 +901,42 @@ sub _getTotalCollectionCount {
     my $select = <<~"SQL";
     SELECT COUNT(*) FROM comics
     SQL
-    my $sth = $dbh->prepare($select) || die "prepare: $select: $DBI::errstr";
-    $sth->execute || die "execute: $select: $DBI::errstr";
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
     my ($count) = $sth->fetchrow_array();
     # commify
     $count =~ s/(?<=\d)(?=(\d{3})+$)/,/g;
     return $count;
+}
+
+=head2 _getTypesDropdown()
+
+Given a template object, return that object populated with a selector for grades.
+
+=cut
+
+sub _getTypesDropdown {
+    my %arg = @_;
+    my $t = $arg{template};
+    my $selected_type = $arg{selected_type};
+    my @types = (
+        'book',
+        'card',
+        'comic',
+        'magazine',
+        'other',
+    );
+    my @options;
+    foreach my $type ( @types ) {
+        my %row;
+        if ( $selected_type && $selected_type eq $type ) {
+            $row{SELECTED} = 'SELECTED';
+        }
+        $row{TYPE} = $type;
+        push(@options, \%row);
+    }
+    $t->param(TYPES => \@options);
+    return $t;
 }
 
 =head1 AUTHOR

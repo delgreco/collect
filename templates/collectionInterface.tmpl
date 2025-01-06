@@ -5,7 +5,7 @@
 <b><br>
 <ul style="line-height: 1.7em;">
 <TMPL_LOOP INDEXED_TITLES>
-    <li><a href="<TMPL_VAR SCRIPT_NAME>?title_id=<TMPL_VAR TITLE_ID>"><TMPL_VAR TITLE></a>: <TMPL_LOOP ISSUES><a href="#" onclick="editIssue(<TMPL_VAR ID>);"><TMPL_VAR ISSUE_NUM></a>, </TMPL_LOOP></li>
+    <li><a href="<TMPL_VAR SCRIPT_NAME>?title_id=<TMPL_VAR TITLE_ID>"><TMPL_VAR TITLE></a>: <TMPL_LOOP ISSUES><a href="#" onclick="editItem(<TMPL_VAR ID>);"><TMPL_VAR ISSUE_NUM></a>, </TMPL_LOOP></li>
 </TMPL_LOOP>
 </ul>
 

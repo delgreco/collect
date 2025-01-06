@@ -85,7 +85,7 @@ a:hover   {color:#FF33CC; text-decoration:underline;}
 
 <script>
 
-function editIssue(id) {
+function editItem(id) {
     $('#id').val( id );
     $('#edit_issue_form').submit();    
 }
@@ -102,7 +102,7 @@ function editIssue(id) {
     <a href="<TMPL_VAR SCRIPT_NAME>?action=collectionInterface">text index</a> 
     - <a href="?action=mainInterface">image gallery</a>
     - <button onClick="location='?action=editCategory&title_id=<TMPL_VAR TITLE_ID>';">add category</button>
-    - <button onClick="location='?action=editIssue&title_id=<TMPL_VAR TITLE_ID>';">add item</button><br>
+    - <button onClick="location='?action=editItem&title_id=<TMPL_VAR TITLE_ID>';">add item</button><br>
 
 </div>
 
