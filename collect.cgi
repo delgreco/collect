@@ -367,6 +367,9 @@ sub editItem {
     $t->param(NOTES => $item_ref->{notes});
     $t->param(ID => $id);
     $t->param(TITLE_ID => $title_id || $item_ref->{title_id});
+    if ( $cat_ref->{type} =~ m/comic|magazine/ ) {
+        $t->param(COMIC_MAG_GRADING => 1);
+    }
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     print "Content-type: text/html\n\n";
     print $t->output;
@@ -681,10 +684,10 @@ sub saveIssue {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE comics
-        SET title_id = ?, issue_num = ?, year = ?, thumb_url = ?, image_page_url = ?, notes = ?, grade_id = ?
+        SET title_id = ?, issue_num = ?, year = ?, notes = ?, grade_id = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
@@ -692,11 +695,11 @@ sub saveIssue {
     else {
         my $sql = <<~"SQL";
         INSERT INTO comics
-        (title_id, issue_num, year, thumb_url, image_page_url, notes, grade_id, added) 
-        VALUES 
-        (?, ?, ?, ?, ?, ?, ?, NOW())
+        (title_id, issue_num, year, notes, grade_id, added)
+        VALUES
+        (?, ?, ?, ?, ?, NOW())
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('thumb_url'), $cgi->param('image_page_url'), $cgi->param('notes'), $grade_id);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('notes'), $grade_id);
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
