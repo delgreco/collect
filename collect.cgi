@@ -514,7 +514,11 @@ sub mainInterface {
         if ( $image_id ) {
             $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.${image_extension}";
             my $size_kb = -s "$localcover" ? int( ( -s "$localcover" ) / 1024 ) : 0;
-            $row{SIZE} = $size_kb;
+            if ( $size_kb > 2000 || $size_kb < 100 ) {
+                # only show size for images that are possibly too large
+                # or too small
+                $row{SIZE} = $size_kb;
+            }
         } 
         if ( -e $localcover ) {
             $thumb_url = "/images/${image_id}.${image_extension}";
@@ -524,6 +528,7 @@ sub mainInterface {
             $row{IMAGE_COUNT} = $image_count;
         }
         $row{THUMB_URL} = $thumb_url;
+        $row{TITLE} = $title;
         $row{ID} = $id;
         push(@comics, \%row);
     }
