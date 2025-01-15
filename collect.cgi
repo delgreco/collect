@@ -65,8 +65,6 @@ my $DB_PASSWORD = <DB_PASSWORD>; chomp($DB_PASSWORD);
 
 my $cgi = new CGI;
 
-print STDERR "$DATABASE, $DATABASE_HOST, $DB_USER, $DB_PASSWORD\n";
-
 my $dsn = "DBI:mysql:database=$DATABASE;host=$DATABASE_HOST";
 my $dbh = DBI->connect(
     $dsn,
@@ -146,6 +144,7 @@ Delete an category, given its id, as long as it is associated to no items.
 
 sub deleteCategory {
     my $id = $cgi->param('id');
+    my $message;
     # make sure it's ok to do this
     my $sql = <<~"SQL";
     SELECT COUNT(*) FROM comics WHERE title_id = ?
@@ -154,18 +153,17 @@ sub deleteCategory {
     $sth->execute($id);
     my ($items_count) = $sth->fetchrow_array();
     if ( $items_count ) {
-        my $message = qq |ERROR: no action taken.  This category still has items associated.|;
+        $message = qq |ERROR: no action taken.  This category still has items associated.|;
     }
     else {
-        # delete
         my $delete = <<~"SQL";
         DELETE FROM comics_titles WHERE id = ?
         SQL
         my $sth = $dbh->prepare($delete);
         $sth->execute($id);
-        my $message = qq |Category deleted.|;
+        $message = qq |Category deleted.|;
     }
-    mainInterface();
+    mainInterface( $message, $id );
 }
 
 =head2 deleteImage
@@ -258,10 +256,7 @@ sub deleteIssue {
     $sth = $dbh->prepare($delete);
     $sth->execute($id);
     my $message = qq |Item deleted.|;
-    mainInterface( 
-        message  => $message, 
-        title_id => $item_ref->{title_id}, 
-    );
+    mainInterface( $message, $item_ref->{title_id} );
 }
 
 =head2 editCategory()
@@ -405,11 +400,8 @@ The main image-based view of the collection, in a grid.
 
 =cut
 
-sub mainInterface {
-    my %arg = @_;
-    my $message = $arg{message};
-    my $title_id = $arg{title_id};
-    $title_id = $cgi->param('title_id') unless $title_id;
+sub mainInterface ( $message = '', $title_id = 0 ) {
+    $title_id = $cgi->param('title_id') if ! $title_id;
     my $year=$cgi->param('year');
     my $oldest=$cgi->param('oldest');
     my $t = HTML::Template->new(
@@ -682,13 +674,13 @@ sub saveImage {
     editItem( $item_id );
 }
 
-=head2 saveIssue()
+=head2 saveItem()
 
 Add or update an issue from L</editItem()>.
 
 =cut
 
-sub saveIssue {
+sub saveItem {
     my $id; my $message = '';
     my $grade_id = $cgi->param('grade_id') || 0;
     if ( $cgi->param('id') ) {
@@ -722,7 +714,7 @@ sub saveIssue {
     }
     my $ungraded = 1;
     $ungraded = 0 if $grade_id;
-    mainInterface( ungraded => $ungraded, message => $message );
+    editItem( $id, $cgi->param('title_id') );
 }
 
 =head1 INTERNAL SUBROUTINES
