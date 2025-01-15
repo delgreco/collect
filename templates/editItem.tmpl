@@ -10,7 +10,7 @@
         <form style="display: inline;" method="post" action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return confirm('Really delete this issue?');">
         <input type="hidden" name="action" value="deleteIssue">
         <input type="hidden" name="id" value="<TMPL_VAR ID>">
-        <input style="display: inline;" type="submit" value="Delete">
+        <input style="display: inline;" type="submit" value="Delete Item">
         </form>
     </TMPL_IF>
 
@@ -35,6 +35,15 @@
 
     <TMPL_IF COMIC_MAG_GRADING>
         Grade: <select name="grade_id">
+        <option value="">select grade of best copy...
+        <TMPL_LOOP GRADES>
+            <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR CGC_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
+        </TMPL_LOOP>
+        </select><br><br>
+    </TMPL_IF>
+
+    <TMPL_IF PSA_GRADING>
+        PSA Grade: <select name="PSA_grade_id">
         <option value="">select grade of best copy...
         <TMPL_LOOP GRADES>
             <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR CGC_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>

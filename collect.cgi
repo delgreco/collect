@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use strict;
 use warnings;
@@ -6,6 +6,10 @@ use warnings;
 # we use indented HEREDOCs among other things
 # so require a minimum Perl version
 use 5.026;
+
+# this is needed until we can
+# use 5.036 when it is enabled by default
+use feature 'signatures';
 
 use lib qw(
     .
@@ -203,7 +207,7 @@ sub deleteImage {
         print STDERR "'$file' does not exist.\n";
     }
     my $message = qq |Image deleted.|;
-    editItem($item_id, $issue_ref->{title_id});
+    editItem( $item_id, $issue_ref->{title_id} );
 }
 
 =head2 deleteIssue
@@ -294,9 +298,9 @@ Screen on which to edit an issue record.
 
 =cut
 
-sub editItem {
-    my $id = $_[0] || $cgi->param('id');
-    my $title_id = $_[1] || $cgi->param('title_id') || '';
+sub editItem ( $id = 0, $title_id = 0 ) {
+    $id = $cgi->param('id') if ! $id;
+    $title_id = $cgi->param('title_id') if ! $title_id;
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
     # get item
     my $sql = <<~"SQL";
@@ -466,7 +470,8 @@ sub mainInterface {
     );
     my $order_by = '';
     if ( $title_id ) {
-        $order_by = 'issue_num';
+        # numerical ordering for comics, do we want this always?
+        $order_by = 'CAST(issue_num AS UNSIGNED)';
     }
     elsif ( $oldest ) {
         $order_by = 'year, issue_num';
@@ -574,6 +579,7 @@ sub saveCategory {
     my $id;
     my $category = $cgi->param('category');
     my $type = $cgi->param('type');
+    my $message;
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
@@ -598,12 +604,12 @@ sub saveCategory {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
         else {
-            $IX::Template::message = qq |Category added.|;
+            $message = qq |Category added.|;
         }
         # grab the automatically incremented id that was generated
         $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
     }
-    mainInterface();
+    editItem( undef, $id );
 }
 
 =head2 saveImage()
@@ -864,6 +870,39 @@ sub _getMostRecentYear {
     $sth->execute;
     my ($most_recent_year) = $sth->fetchrow_array();
     return $most_recent_year;
+}
+
+=head2 _getPSAGradesDropdown()
+
+Given a template object, return that object populated with a selector for PSA grades.
+
+=cut
+
+sub _getPSAGradesDropdown {
+    my %arg = @_;
+    my $t = $arg{template};
+    my $selected_grade_id = $arg{selected_grade_id};
+    my @grades;
+    my $select = <<~"SQL";
+    SELECT grade, grade_abbrev, id, cgc_number
+    FROM comics_PSA_grades
+    ORDER BY cgc_number
+    SQL
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
+    while (my ($grade, $grade_abbrev, $id, $cgc_number) = $sth->fetchrow_array()) {
+        my %row;
+        if ( $selected_grade_id eq $id ) {
+            $row{SELECTED} = 'SELECTED';
+        }
+        $row{GRADE} = $grade;
+        $row{GRADE_ABBREV} = $grade_abbrev;
+        $row{CGC_NUMBER} = $cgc_number;
+        $row{ID} = $id;
+        push(@grades, \%row);
+    }
+    $t->param(GRADES => \@grades);
+    return $t;
 }
 
 =head2 _getTitlesDropdown()
