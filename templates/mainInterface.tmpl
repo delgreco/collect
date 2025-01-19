@@ -16,9 +16,8 @@
             <div class="image-container">
                 <TMPL_IF OFFSITE><span style="color: green;">IMAGE OFFSITE</span></TMPL_IF>
                 <a onClick="editItem(<TMPL_VAR ID>);" class="type4" style="cursor: pointer;" target="_blank"><img width="95%" src="<TMPL_VAR THUMB_URL>" border="0" class="large-image" alt="item image"> <TMPL_IF STOCK><img src="/camera.webp" class="small-image" alt="stock image"></TMPL_IF> 
+                <TMPL_VAR TITLE> #<TMPL_VAR ISSUE_NUM> <TMPL_VAR YEAR><TMPL_IF GRADE_ABBREV>, <TMPL_VAR GRADE_ABBREV></TMPL_IF></a><br>
             </div>
-            <br>
-            <TMPL_VAR TITLE> #<TMPL_VAR ISSUE_NUM> <TMPL_VAR YEAR><TMPL_IF GRADE_ABBREV>, <TMPL_VAR GRADE_ABBREV></TMPL_IF></a><br>
             <TMPL_IF NOTES><span style="font-size: 0.8em;"><TMPL_VAR NOTES></span><br></TMPL_IF>
             <TMPL_IF IMAGE_COUNT><span style="font-size: 0.7em; font-style: italic;"><TMPL_VAR IMAGE_COUNT> images</span></TMPL_IF>
             <TMPL_IF SIZE><span style="font-size: 0.7em; font-style: italic;"><TMPL_VAR SIZE> kb</span></TMPL_IF>

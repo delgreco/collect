@@ -443,7 +443,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     }
     # get year list
     my $select = <<~"SQL";
-    SELECT DISTINCT year FROM comics ORDER BY year
+    SELECT DISTINCT year FROM items ORDER BY year
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
@@ -476,7 +476,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, 
     item.id AS the_id, g.grade_abbrev, image.id, image.main, image.extension, image.stock, image.notes, 
     (SELECT COUNT(*) FROM comics_images WHERE item_id = the_id)
-    FROM comics AS item
+    FROM items AS item
     LEFT JOIN comics_images AS image
     ON image.item_id = item.id
     LEFT JOIN comics_titles AS t
@@ -686,7 +686,7 @@ sub saveItem {
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
-        UPDATE comics
+        UPDATE items
         SET title_id = ?, issue_num = ?, year = ?, notes = ?, grade_id = ?
         WHERE id = ?
         SQL
@@ -697,7 +697,7 @@ sub saveItem {
     }
     else {
         my $sql = <<~"SQL";
-        INSERT INTO comics
+        INSERT INTO items
         (title_id, issue_num, year, notes, grade_id, added)
         VALUES
         (?, ?, ?, ?, ?, NOW())
@@ -764,7 +764,7 @@ sub _getAverageYear {
         push(@bind_vars, $title_id);
     }
     my $select = <<~"SQL";
-    SELECT ROUND(AVG(year)) FROM comics $where
+    SELECT ROUND(AVG(year)) FROM items $where
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute(@bind_vars);
@@ -788,7 +788,7 @@ sub _getAverageGrade {
         push(@bind_vars, $title_id);
     }
     my $select = <<~"SQL";
-    SELECT ROUND(AVG(cgc_number), 1) FROM comics
+    SELECT ROUND(AVG(cgc_number), 1) FROM items
     LEFT JOIN comics_grades AS g
     ON g.id = grade_id
     $where
@@ -840,7 +840,7 @@ Return the oldest publishing year of all items in the collection.
 
 sub _getLeastRecentYear {
     my $select = <<~"SQL";
-    SELECT year FROM comics ORDER BY year ASC LIMIT 1
+    SELECT year FROM items ORDER BY year ASC LIMIT 1
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
@@ -856,7 +856,7 @@ Return the most recent publishing year of all items in the collection.
 
 sub _getMostRecentYear {
     my $select = <<~"SQL";
-    SELECT year FROM comics ORDER BY year DESC LIMIT 1
+    SELECT year FROM items ORDER BY year DESC LIMIT 1
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
@@ -910,7 +910,7 @@ sub _getTitlesDropdown {
     my @titles;
     my $select = <<~"SQL";
     SELECT DISTINCT title, comics_titles.id AS the_id,
-    (SELECT COUNT(*) FROM comics WHERE title_id = the_id)
+    (SELECT COUNT(*) FROM items WHERE title_id = the_id)
     FROM comics_titles 
     ORDER BY title
     SQL
@@ -938,7 +938,7 @@ Return the total number of issues in the collection.
 
 sub _getTotalCollectionCount {
     my $select = <<~"SQL";
-    SELECT COUNT(*) FROM comics
+    SELECT COUNT(*) FROM items
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
