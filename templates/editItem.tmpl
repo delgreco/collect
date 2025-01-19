@@ -36,7 +36,7 @@
     <TMPL_IF COMIC_MAG_GRADING>
         Grade: <select name="grade_id">
         <option value="">select grade of best copy...
-        <TMPL_LOOP GRADES>
+        <TMPL_LOOP COMIC_GRADES>
             <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR CGC_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
         </TMPL_LOOP>
         </select><br><br>
@@ -44,9 +44,9 @@
 
     <TMPL_IF PSA_GRADING>
         PSA Grade: <select name="PSA_grade_id">
-        <option value="">select grade of best copy...
-        <TMPL_LOOP GRADES>
-            <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR CGC_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
+        <option value="">select grade...
+        <TMPL_LOOP PSA_GRADES>
+            <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR PSA_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
         </TMPL_LOOP>
         </select><br><br>
     </TMPL_IF>

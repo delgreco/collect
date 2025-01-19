@@ -287,7 +287,7 @@ sub editCategory {
     print $t->output;
 }
 
-=head2 editItem()
+=head2 editItem(id, title_id)
 
 Screen on which to edit an issue record.
 
@@ -311,9 +311,13 @@ sub editItem ( $id = 0, $title_id = 0 ) {
         template => $t,
         selected_title_id => $title_id || $item_ref->{title_id},
     );
-    $t = _getGradesDropdown(
+    $t = _getComicGradesDropdown(
         template => $t,
-        selected_grade_id => $item_ref->{grade_id},
+        selected_id => $item_ref->{grade_id},
+    );
+    $t = _getPSAGradesDropdown(
+        template => $t,
+        selected_id => $item_ref->{PSA_grade_id},
     );
     $t->param(ISSUE_NUM => $item_ref->{issue_num});
     # override database value if new filesystem
@@ -368,6 +372,9 @@ sub editItem ( $id = 0, $title_id = 0 ) {
     $t->param(TITLE_ID => $title_id || $item_ref->{title_id});
     if ( $cat_ref->{type} =~ m/comic|magazine/ ) {
         $t->param(COMIC_MAG_GRADING => 1);
+    }
+    if ( $cat_ref->{type} =~ m/card/ ) {
+        $t->param(PSA_GRADING => 1);
     }
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     print "Content-type: text/html\n\n";
@@ -474,15 +481,17 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     # get items
     $select = <<~"SQL";
     SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, 
-    item.id AS the_id, g.grade_abbrev, image.id, image.main, image.extension, image.stock, image.notes, 
+    item.id AS the_id, g.grade_abbrev, psa.grade_abbrev, psa.PSA_number, image.id, image.main, image.extension, image.stock, image.notes, 
     (SELECT COUNT(*) FROM images WHERE item_id = the_id)
     FROM items AS item
     LEFT JOIN images AS image
     ON image.item_id = item.id
     LEFT JOIN titles AS t
     ON t.id = item.title_id
-    LEFT JOIN comics_grades AS g
+    LEFT JOIN comic_grades AS g
     ON g.id = grade_id
+    LEFT JOIN PSA_grades AS psa
+    ON psa.id = PSA_grade_id
     $where 
     GROUP BY item.id, image.id
     HAVING image.main = 1 OR image.main IS NULL
@@ -493,15 +502,18 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     $sth->execute;
     my $count = 0;
     my @comics; my @numbers;
-    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
+    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $PSA_grade_abbrev, $PSA_number, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
         $count++;
         my %row;
         $row{STOCK} = $stock;
         $row{ISSUE_NUM} = $issue_num;
         push(@numbers, $issue_num); # for finding missing issues below
         $row{YEAR} = $year;
-        $row{GRADE_ABBREV} = $grade_abbrev;
+        $row{COMIC_GRADE_ABBREV} = $grade_abbrev;
+        $row{PSA_GRADE_ABBREV} = $PSA_grade_abbrev;
+        $row{PSA_NUMBER} = $PSA_number;
         $row{NOTES} = $notes || $image_notes;
+        # NOTE: these are deprecated and will be removed soon
         # $row{IMAGE_PAGE_URL} = $image_page_url;
         # override database value if new filesystem
         # method is being used
@@ -683,14 +695,15 @@ Add or update an issue from L</editItem()>.
 sub saveItem {
     my $id; my $message = '';
     my $grade_id = $cgi->param('grade_id') || 0;
+    my $PSA_grade_id = $cgi->param('PSA_grade_id') || 0;
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE items
-        SET title_id = ?, issue_num = ?, year = ?, notes = ?, grade_id = ?
+        SET title_id = ?, issue_num = ?, year = ?, notes = ?, grade_id = ?, PSA_grade_id = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
@@ -698,11 +711,11 @@ sub saveItem {
     else {
         my $sql = <<~"SQL";
         INSERT INTO items
-        (title_id, issue_num, year, notes, grade_id, added)
+        (title_id, issue_num, year, notes, grade_id, PSA_grade_id, added)
         VALUES
-        (?, ?, ?, ?, ?, NOW())
+        (?, ?, ?, ?, ?, ?, NOW())
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('notes'), $grade_id);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id);
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
@@ -789,7 +802,7 @@ sub _getAverageGrade {
     }
     my $select = <<~"SQL";
     SELECT ROUND(AVG(cgc_number), 1) FROM items
-    LEFT JOIN comics_grades AS g
+    LEFT JOIN comic_grades AS g
     ON g.id = grade_id
     $where
     SQL
@@ -799,27 +812,27 @@ sub _getAverageGrade {
     return $average_cgc_num;
 }
 
-=head2 _getGradesDropdown()
+=head2 _getComicGradesDropdown()
 
-Given a template object, return that object populated with a selector for grades.
+Given a template object, return that object populated with a selector for grades.  Optionally, pass a selected_id to preselect.
 
 =cut
 
-sub _getGradesDropdown {
+sub _getComicGradesDropdown {
     my %arg = @_;
     my $t = $arg{template};
-    my $selected_grade_id = $arg{selected_grade_id};
+    my $selected_id = $arg{selected_id};
     my @grades;
     my $select = <<~"SQL";
     SELECT grade, grade_abbrev, id, cgc_number
-    FROM comics_grades
+    FROM comic_grades
     ORDER BY cgc_number
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
     while (my ($grade, $grade_abbrev, $id, $cgc_number) = $sth->fetchrow_array()) {
         my %row;
-        if ( $selected_grade_id eq $id ) {
+        if ( $selected_id eq $id ) {
             $row{SELECTED} = 'SELECTED';
         }
         $row{GRADE} = $grade;
@@ -828,11 +841,11 @@ sub _getGradesDropdown {
         $row{ID} = $id;
         push(@grades, \%row);
     }
-    $t->param(GRADES => \@grades);
+    $t->param(COMIC_GRADES => \@grades);
     return $t;
 }
 
-=head2 getLeastRecentYear()
+=head2 _getLeastRecentYear()
 
 Return the oldest publishing year of all items in the collection.
 
@@ -848,7 +861,7 @@ sub _getLeastRecentYear {
     return $most_recent_year;
 }
 
-=head2 getMostRecentYear()
+=head2 _getMostRecentYear()
 
 Return the most recent publishing year of all items in the collection.
 
@@ -873,27 +886,27 @@ Given a template object, return that object populated with a selector for PSA gr
 sub _getPSAGradesDropdown {
     my %arg = @_;
     my $t = $arg{template};
-    my $selected_grade_id = $arg{selected_grade_id};
+    my $selected_id = $arg{selected_id} || '';
     my @grades;
     my $select = <<~"SQL";
-    SELECT grade, grade_abbrev, id, cgc_number
-    FROM comics_PSA_grades
-    ORDER BY cgc_number
+    SELECT grade, grade_abbrev, id, PSA_number
+    FROM PSA_grades
+    ORDER BY PSA_number
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
-    while (my ($grade, $grade_abbrev, $id, $cgc_number) = $sth->fetchrow_array()) {
+    while (my ($grade, $grade_abbrev, $id, $PSA_number) = $sth->fetchrow_array()) {
         my %row;
-        if ( $selected_grade_id eq $id ) {
+        if ( $selected_id eq $id ) {
             $row{SELECTED} = 'SELECTED';
         }
         $row{GRADE} = $grade;
         $row{GRADE_ABBREV} = $grade_abbrev;
-        $row{CGC_NUMBER} = $cgc_number;
+        $row{PSA_NUMBER} = $PSA_number;
         $row{ID} = $id;
         push(@grades, \%row);
     }
-    $t->param(GRADES => \@grades);
+    $t->param(PSA_GRADES => \@grades);
     return $t;
 }
 
