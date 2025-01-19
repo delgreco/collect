@@ -92,7 +92,7 @@ sub collectionInterface {
     my $message = $_[0];
     my $t = HTML::Template->new(filename => 'templates/collectionInterface.tmpl');
     my $select = <<~"SQL";
-    SELECT title, id FROM comics_titles ORDER BY title
+    SELECT title, id FROM titles ORDER BY title
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
@@ -157,7 +157,7 @@ sub deleteCategory {
     }
     else {
         my $delete = <<~"SQL";
-        DELETE FROM comics_titles WHERE id = ?
+        DELETE FROM titles WHERE id = ?
         SQL
         my $sth = $dbh->prepare($delete);
         $sth->execute($id);
@@ -182,12 +182,12 @@ sub deleteImage {
     my $issue_ref = $dbh->selectrow_hashref($sql, undef, $item_id);
     # image
     my $sql = <<~"SQL";
-    SELECT * FROM comics_images WHERE id = ?
+    SELECT * FROM images WHERE id = ?
     SQL
     my $image_ref = $dbh->selectrow_hashref($sql, undef, $id);
     # delete
     my $delete = <<~"SQL";
-    DELETE FROM comics_images WHERE id = ?
+    DELETE FROM images WHERE id = ?
     SQL
     my $sth = $dbh->prepare($delete);
     $sth->execute($id);
@@ -230,7 +230,7 @@ sub deleteIssue {
     $sth->execute($id);
     # loop through images and delete files
     my $select = <<~"SQL";
-    SELECT id FROM comics_images 
+    SELECT id FROM images 
     WHERE item_id = ?
     SQL
     my $sth = $dbh->prepare($select);
@@ -251,7 +251,7 @@ sub deleteIssue {
     }
     # delete images
     $delete = <<~"SQL";
-    DELETE FROM comics_images WHERE item_id = ?
+    DELETE FROM images WHERE item_id = ?
     SQL
     $sth = $dbh->prepare($delete);
     $sth->execute($id);
@@ -269,7 +269,7 @@ sub editCategory {
     my $id = $_[0] || $cgi->param('id');
     my $t = HTML::Template->new(filename => 'templates/editCategory.tmpl');
     my $sql = <<~"SQL";
-    SELECT * FROM comics_titles WHERE id = ?
+    SELECT * FROM titles WHERE id = ?
     SQL
     my $cat_ref = $dbh->selectrow_hashref($sql, undef, $id);
     $t->param(CATEGORY => $cat_ref->{title});
@@ -299,12 +299,12 @@ sub editItem ( $id = 0, $title_id = 0 ) {
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
     # get item
     my $sql = <<~"SQL";
-    SELECT * FROM comics WHERE id = ?
+    SELECT * FROM items WHERE id = ?
     SQL
     my $item_ref = $dbh->selectrow_hashref($sql, undef, $id);
     # get category
     $sql = <<~"SQL";
-    SELECT * FROM comics_titles WHERE id = ?
+    SELECT * FROM titles WHERE id = ?
     SQL
     my $cat_ref = $dbh->selectrow_hashref($sql, undef, $item_ref->{title_id});
     $t = _getTitlesDropdown(
@@ -326,7 +326,7 @@ sub editItem ( $id = 0, $title_id = 0 ) {
     # show all images
     my $select = <<~"SQL";
     SELECT id, extension, main, notes, stock
-    FROM comics_images
+    FROM images
     WHERE item_id = ?
     SQL
     my $sth = $dbh->prepare($select);
@@ -435,7 +435,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     my $title = '';
     if ( $title_id ) {
         my $select = <<~"SQL";
-        SELECT title FROM comics_titles WHERE id = ?
+        SELECT title FROM titles WHERE id = ?
         SQL
         my $sth = $dbh->prepare($select);
         $sth->execute($title_id);
@@ -475,11 +475,11 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     $select = <<~"SQL";
     SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, 
     item.id AS the_id, g.grade_abbrev, image.id, image.main, image.extension, image.stock, image.notes, 
-    (SELECT COUNT(*) FROM comics_images WHERE item_id = the_id)
+    (SELECT COUNT(*) FROM images WHERE item_id = the_id)
     FROM items AS item
-    LEFT JOIN comics_images AS image
+    LEFT JOIN images AS image
     ON image.item_id = item.id
-    LEFT JOIN comics_titles AS t
+    LEFT JOIN titles AS t
     ON t.id = item.title_id
     LEFT JOIN comics_grades AS g
     ON g.id = grade_id
@@ -575,7 +575,7 @@ sub saveCategory {
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
-        UPDATE comics_titles
+        UPDATE titles
         SET title = ?, `type` = ?
         WHERE id = ?
         SQL
@@ -586,7 +586,7 @@ sub saveCategory {
     }
     else {
         my $sql = <<~"SQL";
-        INSERT INTO comics_titles
+        INSERT INTO titles
         (title, `type`) 
         VALUES 
         (?, ?)
@@ -628,14 +628,14 @@ sub saveImage {
     # clear existing 'main' image if this image is set to be the main
     if ( $main ) {
         my $sql = <<~"SQL";
-        UPDATE comics_images SET main = 0 WHERE item_id = ?
+        UPDATE images SET main = 0 WHERE item_id = ?
         SQL
         my $rows_updated = $dbh->do(qq{$sql}, undef, $item_id);
     }
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
-        UPDATE comics_images
+        UPDATE images
         SET notes = ?, main = ?, stock = ?
         WHERE id = ?
         SQL
@@ -646,7 +646,7 @@ sub saveImage {
     }
     else {
         my $sql = <<~"SQL";
-        INSERT INTO comics_images
+        INSERT INTO images
         (notes, item_id, extension, main, stock)
         VALUES 
         (?, ?, ?, ?, ?)
@@ -909,9 +909,9 @@ sub _getTitlesDropdown {
     my $selected_title_id = $arg{selected_title_id};
     my @titles;
     my $select = <<~"SQL";
-    SELECT DISTINCT title, comics_titles.id AS the_id,
+    SELECT DISTINCT title, titles.id AS the_id,
     (SELECT COUNT(*) FROM items WHERE title_id = the_id)
-    FROM comics_titles 
+    FROM titles 
     ORDER BY title
     SQL
     my $sth = $dbh->prepare($select);
