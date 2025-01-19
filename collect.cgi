@@ -576,7 +576,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
 
 =head2 saveCategory()
 
-Add or update an issue from L</editCategory()>.
+Add or update a category / title from L</editCategory()>.
 
 =cut
 
@@ -596,6 +596,7 @@ sub saveCategory {
         if ( $rows_updated != 1 ) {
             $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
         }
+        mainInterface( "$category updated.", $id );
     }
     else {
         my $sql = <<~"SQL";
@@ -613,8 +614,8 @@ sub saveCategory {
         }
         # grab the automatically incremented id that was generated
         $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
+        editItem( undef, $id, $message );
     }
-    editItem( undef, $id, $message );
 }
 
 =head2 saveImage()
