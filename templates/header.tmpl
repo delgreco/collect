@@ -97,6 +97,8 @@ function editItem(id) {
 
 <div style="float: left; width: 40%;">
 
+    <TMPL_IF MESSAGE><span style="color: red;"><TMPL_VAR MESSAGE></span></TMPL_IF>
+    
     <h1>Collect<TMPL_IF TOTAL_COLLECTION_COUNT> - <TMPL_VAR TOTAL_COLLECTION_COUNT> Items</TMPL_IF></h1>
 
     <a href="<TMPL_VAR SCRIPT_NAME>?action=collectionInterface">text index</a> 

@@ -205,7 +205,7 @@ sub deleteImage {
         print STDERR "'$file' does not exist.\n";
     }
     my $message = qq |Image deleted.|;
-    editItem( $item_id, $issue_ref->{title_id} );
+    editItem( $item_id, $issue_ref->{title_id}, $message );
 }
 
 =head2 deleteIssue
@@ -287,13 +287,13 @@ sub editCategory {
     print $t->output;
 }
 
-=head2 editItem(id, title_id)
+=head2 editItem($id, $title_id, $message)
 
 Screen on which to edit an issue record.
 
 =cut
 
-sub editItem ( $id = 0, $title_id = 0 ) {
+sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     $id = $cgi->param('id') if ! $id;
     $title_id = $cgi->param('title_id') if ! $title_id;
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
@@ -377,6 +377,7 @@ sub editItem ( $id = 0, $title_id = 0 ) {
         $t->param(PSA_GRADING => 1);
     }
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
+    $t->param(MESSAGE => $message);
     print "Content-type: text/html\n\n";
     print $t->output;
 }
@@ -401,7 +402,7 @@ sub findMissing {
     return @missing;
 }
 
-=head2 mainInterface
+=head2 mainInterface($message, $title_id)
 
 The main image-based view of the collection, in a grid.
 
@@ -613,7 +614,7 @@ sub saveCategory {
         # grab the automatically incremented id that was generated
         $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
     }
-    editItem( undef, $id );
+    editItem( undef, $id, $message );
 }
 
 =head2 saveImage()
@@ -683,7 +684,7 @@ sub saveImage {
         }
         close FILE;
     }
-    editItem( $item_id );
+    editItem( $item_id, undef, $message );
 }
 
 =head2 saveItem()
@@ -707,6 +708,9 @@ sub saveItem {
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
+        else {
+            $message = "Item updated.";
+        }
     }
     else {
         my $sql = <<~"SQL";
@@ -727,7 +731,7 @@ sub saveItem {
     }
     my $ungraded = 1;
     $ungraded = 0 if $grade_id;
-    editItem( $id, $cgi->param('title_id') );
+    editItem( $id, $cgi->param('title_id'), $message );
 }
 
 =head1 INTERNAL SUBROUTINES
