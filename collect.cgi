@@ -104,7 +104,7 @@ sub collectionInterface {
         # NOTE: speed this up with a single SQL query, no inner loop
         my $select = <<~"SQL";
         SELECT id, issue_num, image_page_url 
-        FROM comics WHERE title_id = ? ORDER BY issue_num
+        FROM items WHERE title_id = ? ORDER BY issue_num
         SQL
         my $sth = $dbh->prepare($select);
         $sth->execute($title_id);
@@ -147,7 +147,7 @@ sub deleteCategory {
     my $message;
     # make sure it's ok to do this
     my $sql = <<~"SQL";
-    SELECT COUNT(*) FROM comics WHERE title_id = ?
+    SELECT COUNT(*) FROM items WHERE title_id = ?
     SQL
     my $sth = $dbh->prepare($sql);
     $sth->execute($id);
@@ -177,7 +177,7 @@ sub deleteImage {
     my $item_id = $cgi->param('item_id');
     # item
     my $sql = <<~"SQL";
-    SELECT * FROM comics WHERE id = ?
+    SELECT * FROM items WHERE id = ?
     SQL
     my $issue_ref = $dbh->selectrow_hashref($sql, undef, $item_id);
     # image
@@ -219,12 +219,12 @@ Because we also have a Flickr page for the issue, send ourselves an email to rem
 sub deleteIssue {
     my $id = $cgi->param('id');
     my $sql = <<~"SQL";
-    SELECT * FROM comics WHERE id = ?
+    SELECT * FROM items WHERE id = ?
     SQL
     my $item_ref = $dbh->selectrow_hashref($sql, undef, $id);
     # delete item
     my $delete = <<~"SQL";
-    DELETE FROM comics WHERE id = ?
+    DELETE FROM items WHERE id = ?
     SQL
     my $sth = $dbh->prepare($delete);
     $sth->execute($id);
