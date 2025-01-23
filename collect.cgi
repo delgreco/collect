@@ -89,7 +89,8 @@ Image-less view of all issues in the collection, or the "text index".
 =cut
 
 sub collectionInterface {
-    my $message = $_[0];
+    my $type = $cgi->param('type');
+    my $title_id = $cgi->param('title_id');
     my $t = HTML::Template->new(filename => 'templates/collectionInterface.tmpl');
     my $select = <<~"SQL";
     SELECT title, id FROM titles ORDER BY title
@@ -122,7 +123,12 @@ sub collectionInterface {
     }
     $t->param(INDEXED_TITLES => \@titles);
     $t = _getTitlesDropdown(
-        template       => $t,
+        template          => $t,
+        selected_title_id => $title_id,
+    );
+    $t = _getTypesDropdown(
+        template      => $t,
+        selected_type => $type,
     );
     my $average_year = _getAverageYear();
     my $average_grade = _getAverageGrade();
@@ -130,7 +136,6 @@ sub collectionInterface {
     # $t->param(AVERAGE_GRADE => $average_grade);
     my $total_collection_count = _getTotalCollectionCount();
     $t->param(TOTAL_COLLECTION_COUNT => $total_collection_count);
-    $t->param(MESSAGE => $message);
     my $output = $t->output;
     print "Content-type: text/html\n\n";
     print $output;
@@ -410,12 +415,13 @@ The main image-based view of the collection, in a grid.
 
 sub mainInterface ( $message = '', $title_id = 0 ) {
     $title_id = $cgi->param('title_id') if ! $title_id;
+    my $type=$cgi->param('type');
     my $year=$cgi->param('year');
     my $oldest=$cgi->param('oldest');
     my $t = HTML::Template->new(
         filename => 'templates/mainInterface.tmpl',
     );
-    my @where_conditions;
+    my @where_conditions; my @bind_vars;
     my $limit = 50;
     if ( $title_id ) {
         # try to show all items within a title/cat,
@@ -424,10 +430,16 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
         $limit = 300;
     }
     if ( $year ) {
-        push(@where_conditions, "year = '$year'");
+        push(@where_conditions, 'year = ?');
+        push(@bind_vars, $year);
     }
     if ( $title_id ) {
-        push(@where_conditions, "item.title_id = '$title_id'");
+        push(@where_conditions, 'item.title_id = ?');
+        push(@bind_vars, $title_id);
+    } 
+    if ( $type ) {
+        push(@where_conditions, 't.type = ?');
+        push(@bind_vars, $type);
     } 
     my $where = "WHERE" if @where_conditions; 
     my $i = 0;
@@ -468,6 +480,10 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
         template          => $t,
         selected_title_id => $title_id,
     );
+    $t = _getTypesDropdown(
+        template      => $t,
+        selected_type => $type,
+    );
     my $order_by = '';
     if ( $title_id ) {
         # numerical ordering for comics, do we want this always?
@@ -500,7 +516,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     LIMIT $limit
     SQL
     $sth = $dbh->prepare($select);
-    $sth->execute;
+    $sth->execute(@bind_vars);
     my $count = 0;
     my @comics; my @numbers;
     while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $PSA_grade_abbrev, $PSA_number, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
