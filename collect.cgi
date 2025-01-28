@@ -415,9 +415,10 @@ The main image-based view of the collection, in a grid.
 
 sub mainInterface ( $message = '', $title_id = 0 ) {
     $title_id = $cgi->param('title_id') if ! $title_id;
+    my $search=$cgi->param('search') || '';
     my $type=$cgi->param('type');
     my $year=$cgi->param('year');
-    my $oldest=$cgi->param('oldest');
+    my $order=$cgi->param('order') || 'recent_adds';
     my $t = HTML::Template->new(
         filename => 'templates/mainInterface.tmpl',
     );
@@ -441,6 +442,11 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
         push(@where_conditions, 't.type = ?');
         push(@bind_vars, $type);
     } 
+    if ( $search ) {
+        push(@where_conditions, '( t.title LIKE ? OR item.notes LIKE ? )');
+        push(@bind_vars, "%$search%");
+        push(@bind_vars, "%$search%");
+    }
     my $where = "WHERE" if @where_conditions; 
     my $i = 0;
     foreach my $where_condition ( @where_conditions ) {
@@ -488,11 +494,14 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     if ( $title_id ) {
         # numerical ordering for comics, do we want this always?
         $order_by = 'CAST(issue_num AS UNSIGNED)';
+        $t->param(ORDER_OLDEST_ITEMS => 1);
     }
-    elsif ( $oldest ) {
+    elsif ( $order eq 'oldest_items' ) {
+        $t->param(ORDER_OLDEST_ITEMS => 1);
         $order_by = 'year, issue_num';
     }
     else {
+        $t->param(ORDER_RECENT_ADDS => 1);
         $order_by = 'added DESC';
     }
     # get items
@@ -579,8 +588,8 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     if ( ! $year ) {
         $year = "all years";
     }
+    $t->param(SEARCH => $search);
     $t->param(YEAR => $year);
-    $t->param(OLDEST => $oldest);
     $t->param(YEARS => \@years);
     $t->param(COMICS => \@comics);
     #$t->param(MESSAGE => $message . "\n\n$select");

@@ -95,7 +95,7 @@ function editItem(id) {
 </head>
 <body>
 
-<div style="float: left; width: 40%;">
+<div style="float: left; width: 450px;">
 
     <TMPL_IF MESSAGE><span style="color: red;"><TMPL_VAR MESSAGE></span></TMPL_IF>
     
@@ -109,9 +109,13 @@ function editItem(id) {
 </div>
 
 <div style="float: left;">
-<form method="post" action="<TMPL_VAR SCRIPT_NAME>">
 
-    <input type="checkbox" name="oldest" <TMPL_IF OLDEST>CHECKED</TMPL_IF>> show oldest items &nbsp;&nbsp;
+    <form method="post" action="<TMPL_VAR SCRIPT_NAME>">
+
+    <input type="text" size="15" name="search" value="<TMPL_VAR SEARCH>" placeholder="search text"> &nbsp;
+
+    <input type="radio" name="order" value="recent_adds" <TMPL_IF ORDER_RECENT_ADDS>CHECKED</TMPL_IF>> recent adds &nbsp;&nbsp;
+    <input type="radio" name="order" value="oldest_items" <TMPL_IF ORDER_OLDEST_ITEMS>CHECKED</TMPL_IF>> oldest items &nbsp;&nbsp;
 
     <TMPL_UNLESS TITLE_ID>
         <select name="type">
