@@ -95,9 +95,9 @@
 
         <h2><span id="image_verb">Add</span> Image</h2>
         
-        <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
+        <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return validateImage();">
 
-        Image: <input type="file" name="image"> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_main" name="main"> <label for="edit_image_main">Main</label> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_stock" name="stock"> <label for="edit_image_stock">Stock</label><br><br>
+        Image: <input type="file" id="image" name="image"> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_main" name="main"> <label for="edit_image_main">Main</label> &nbsp;&nbsp;&nbsp; <input type="checkbox" id="edit_image_stock" name="stock"> <label for="edit_image_stock">Stock</label><br><br>
 
         Notes: <input style="width: 60%;" type="text" id="edit_image_notes" name="notes" value="<TMPL_VAR IMAGE_NOTES>"> <br><br>
 
@@ -149,6 +149,16 @@ function setImage(filename, id) {
     document.getElementById('image_verb').innerHTML = 'Edit';
     document.getElementById('bigimage').src = '/images/' + filename;
     document.getElementById('delete_button').innerHTML = '<button onClick="deleteImage(' + id + ');">Delete</button>';
+}
+
+function validateImage() {
+    if ( ! document.getElementById('image').files.length ) {
+        alert('Please select a file.');
+        return false; // prevent submission
+    }
+    else {
+        return true; // allow
+    }
 }
 
 </script>
