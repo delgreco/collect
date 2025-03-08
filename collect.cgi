@@ -325,6 +325,7 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
         selected_id => $item_ref->{PSA_grade_id},
     );
     $t->param(ISSUE_NUM => $item_ref->{issue_num});
+    $t->param(VOLUME => $item_ref->{volume});
     # override database value if new filesystem
     # method is being used
     $t->param(YEAR => $item_ref->{year});
@@ -493,7 +494,8 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     my $order_by = '';
     if ( $title_id ) {
         # numerical ordering for comics, do we want this always?
-        $order_by = 'CAST(issue_num AS UNSIGNED)';
+        #$order_by = 'CAST(issue_num AS UNSIGNED)';
+        $order_by = 'volume, issue_num';
         $t->param(ORDER_OLDEST_ITEMS => 1);
     }
     elsif ( $order eq 'oldest_items' ) {
@@ -727,10 +729,10 @@ sub saveItem {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE items
-        SET title_id = ?, issue_num = ?, year = ?, notes = ?, grade_id = ?, PSA_grade_id = ?
+        SET title_id = ?, issue_num = ?, volume = ?, year = ?, notes = ?, grade_id = ?, PSA_grade_id = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
@@ -741,11 +743,11 @@ sub saveItem {
     else {
         my $sql = <<~"SQL";
         INSERT INTO items
-        (title_id, issue_num, year, notes, grade_id, PSA_grade_id, added)
+        (title_id, issue_num, volume, year, notes, grade_id, PSA_grade_id, added)
         VALUES
-        (?, ?, ?, ?, ?, ?, NOW())
+        (?, ?, ?, ?, ?, ?, ?, NOW())
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id);
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
