@@ -57,17 +57,24 @@ my $dbh = DBI->connect(
 ) || die "Connect failed: $DBI::errstr\n"; 
 
 my $limit = 1; my $id = 0;
-my $verbose;
-GetOptions ("limit=i" => \$limit,
-            "id=i"    => \$id,
-            "verbose"  => \$verbose)   # flag
-or die("Error in command line arguments\n");
+my $verbose; my $new;
+GetOptions (
+    "limit=i" => \$limit,   # --limit=[limit]
+    "id=i"    => \$id,      # --id=[id]
+    "new"     => \$new,     # flag, -new (only process unassessed items)
+    "verbose" => \$verbose  # flag, -verbose
+) or die("Error in command line arguments\n");
 
 # only the one record, if given
-my $where = ''; my @bind_vars;
+my $and = ''; my @bind_vars;
 if ( $id ) {
-    $where = 'WHERE i.id = ?';
+    $and = 'AND i.id = ?';
     push(@bind_vars, $id);
+}
+
+my $and_new = '';
+if ( $new ) {
+    $and_new = 'AND i.value = 0.00';
 }
 
 my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
@@ -77,11 +84,13 @@ my $count = 0;
 my $select = <<~"SQL";
 SELECT i.id, t.title, issue_num, cg.grade, cg.cgc_number 
 FROM items AS i
-LEFt JOIN titles AS t
+LEFT JOIN titles AS t
 ON i.title_id = t.id
 LEFT JOIN comic_grades AS cg
 ON i.grade_id = cg.id
-$where
+WHERE t.`type` = 'comic'
+$and
+$and_new
 SQL
 my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
@@ -102,9 +111,17 @@ while (my ($id, $title, $issue_num, $grade, $grade_number) = $sth->fetchrow_arra
         temperature => 0.1
     );
     print Dumper($response) if $verbose;
-    # print "Model used: $response->{model}\n";
-    print "Item: $title $issue_num $grade $grade_number\n";
-    print "Estimated Price: " . $response->{choices}[0]{message}{content} . "\n";
+    print "Item: $title $issue_num, $grade ($grade_number)\n";
+    my $value = $response->{choices}[0]{message}{content};
+    print "Estimated Price: $value\n";
+    my $sql = <<~"SQL";
+    UPDATE items SET value = ?
+    WHERE id = ?
+    SQL
+    my $rows_updated = $dbh->do(qq{$sql}, undef, $value, $id);
+    if ( $rows_updated != 1 ) {
+        print STDERR "ERROR: $rows_updated rows updated.\n";
+    }
 }
 
 =head1 AUTHOR

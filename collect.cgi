@@ -503,7 +503,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     }
     # get items
     $select = <<~"SQL";
-    SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, 
+    SELECT t.title, issue_num, year, thumb_url, image_page_url, item.notes, storage, item.value, 
     item.id AS the_id, g.grade_abbrev, psa.grade_abbrev, psa.PSA_number, image.id, image.main, image.extension, image.stock, image.notes, 
     (SELECT COUNT(*) FROM images WHERE item_id = the_id)
     FROM items AS item
@@ -525,11 +525,12 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     $sth->execute(@bind_vars);
     my $count = 0;
     my @comics; my @numbers;
-    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $id, $grade_abbrev, $PSA_grade_abbrev, $PSA_number, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
+    while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $value, $id, $grade_abbrev, $PSA_grade_abbrev, $PSA_number, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
         $count++;
         my %row;
         $row{STOCK} = $stock;
         $row{ISSUE_NUM} = $issue_num;
+        $row{VALUE} = $value if $value > 0;
         push(@numbers, $issue_num); # for finding missing issues below
         $row{YEAR} = $year;
         $row{COMIC_GRADE_ABBREV} = $grade_abbrev;
