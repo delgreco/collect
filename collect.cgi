@@ -490,7 +490,8 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     if ( $title_id ) {
         # numerical ordering for comics, do we want this always?
         #$order_by = 'CAST(issue_num AS UNSIGNED)';
-        $order_by = 'volume, issue_num';
+        # $order_by = 'volume ASC, issue_num ASC';
+        $order_by = 'CASE WHEN volume IS NULL THEN 1 ELSE 0 END, CAST(volume AS UNSIGNED) ASC, CAST(issue_num AS UNSIGNED) ASC';
         $t->param(ORDER_OLDEST_ITEMS => 1);
     }
     elsif ( $order eq 'oldest_items' ) {

@@ -56,13 +56,14 @@ my $dbh = DBI->connect(
     }
 ) || die "Connect failed: $DBI::errstr\n"; 
 
-my $limit = 1; my $id = 0;
+my $limit = 1; my $id = 0; my $title_id = 0;
 my $verbose; my $new;
 GetOptions (
-    "limit=i" => \$limit,   # --limit=[limit]
-    "id=i"    => \$id,      # --id=[id]
-    "new"     => \$new,     # flag, -new (only process unassessed items)
-    "verbose" => \$verbose  # flag, -verbose
+    "limit=i" => \$limit,       # --limit=[limit]
+    "id=i"    => \$id,          # --id=[id]
+    "title_id=i" => \$title_id, # --id=[id]
+    "new"     => \$new,         # flag, -new (only process unassessed items)
+    "verbose" => \$verbose      # flag, -verbose
 ) or die("Error in command line arguments\n");
 
 # only the one record, if given
@@ -70,6 +71,12 @@ my $and = ''; my @bind_vars;
 if ( $id ) {
     $and = 'AND i.id = ?';
     push(@bind_vars, $id);
+}
+
+my $and_title_id = '';
+if ( $title_id ) {
+    $and_title_id = 'AND t.id = ?';
+    push(@bind_vars, $title_id);
 }
 
 my $and_new = '';
@@ -91,6 +98,7 @@ ON i.grade_id = cg.id
 WHERE t.`type` = 'comic'
 $and
 $and_new
+$and_title_id
 SQL
 my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
@@ -102,13 +110,12 @@ while (my ($id, $title, $issue_num, $grade, $grade_number) = $sth->fetchrow_arra
     my $response = $api->chat(
         # model => "gpt-3.5-turbo",
          model => "gpt-4-turbo",
-        # model => "gpt-4",
         messages => [
             { role => "system", content => "You are a highly accurate comic book price guide expert. You must estimate the fair market value of comics based on historical sales, market trends, and CGC pricing data. First, determine the appropriate price range for the book. Then, return only the midpoint value of that range, formatted as a number with two decimal places, such as '1300.00'. No text, symbols, or explanations—just the number." },
             { role => "user", content => "Estimate the fair market value of the following comic book based on recent sales, market trends, and industry standards:\n\nComic Book: $title\nIssue #: $issue_num\nGrade: $grade $grade_number\n\nDetermine the most reliable price range, then return only the midpoint value in USD, formatted as a number with two decimal places (e.g., 1300.00)." }
         ],
         max_tokens => 100,
-        temperature => 0.1
+        temperature => 0.0
     );
     print Dumper($response) if $verbose;
     print "Item: $title $issue_num, $grade ($grade_number)\n";
