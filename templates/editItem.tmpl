@@ -152,7 +152,11 @@ function setImage(filename, id) {
 }
 
 function validateImage() {
-    if ( ! document.getElementById('image').files.length ) {
+    if ( 
+        ! document.getElementById('image').files.length 
+        &&
+        ! document.getElementById('edit_image_id').value
+        ) {
         alert('Please select a file.');
         return false; // prevent submission
     }

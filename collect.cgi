@@ -25,6 +25,10 @@ use DBI;
 use FindBin;
 use HTML::Template;
 use JSON;
+use Dotenv;
+use OpenAI::API;
+
+Dotenv->load;
 
 # batteries not included,
 # but this module expected at the level above (..)
@@ -38,6 +42,7 @@ use FatalsToEmail qw(
     Seconds 60
     Debug 1
 );
+
 
 =head1 collect
 
@@ -53,23 +58,13 @@ Get credentials, connect to the database, and run the requested or default actio
 
 =cut
 
-open DB, "$FindBin::Bin/.db" || die("Couldn't open file: $!");
-open DB_HOST, "$FindBin::Bin/.dbhost" || die("Couldn't open file: $!");
-open DB_USER, "$FindBin::Bin/.dbuser" || die("Couldn't open file: $!");
-open DB_PASSWORD, "$FindBin::Bin/.dbpass" || die("Couldn't open file: $!");
-
-my $DATABASE = <DB>; chomp($DATABASE);
-my $DATABASE_HOST = <DB_HOST>; chomp($DATABASE_HOST);
-my $DB_USER = <DB_USER>; chomp($DB_USER);
-my $DB_PASSWORD = <DB_PASSWORD>; chomp($DB_PASSWORD);
-
 my $cgi = new CGI;
 
-my $dsn = "DBI:mysql:database=$DATABASE;host=$DATABASE_HOST";
+my $dsn = "DBI:mysql:database=$ENV{DB};host=$ENV{DB_HOST}";
 my $dbh = DBI->connect(
     $dsn,
-    "$DB_USER",
-    "$DB_PASSWORD", {
+    "$ENV{DB_USER}",
+    "$ENV{DB_PASS}", {
         RaiseError => 1,  # dies on errors
     }
 ) || die "Connect failed: $DBI::errstr\n"; 

@@ -1,6 +1,7 @@
 .carmel
 *.swp
 .db*
+.env
 .htaccess
 about.tmpl
 cpanfile.snapshot
