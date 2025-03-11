@@ -488,10 +488,17 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     );
     my $order_by = '';
     if ( $title_id ) {
-        # numerical ordering for comics, do we want this always?
-        #$order_by = 'CAST(issue_num AS UNSIGNED)';
-        # $order_by = 'volume ASC, issue_num ASC';
-        $order_by = 'CASE WHEN volume IS NULL THEN 1 ELSE 0 END, CAST(volume AS UNSIGNED) ASC, CAST(issue_num AS UNSIGNED) ASC';
+        # NOTE: numerical ordering for comics, do we want this always?
+        # 	1.	Handles both NULL and ''
+        #       •	CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END
+        #       •	Moves rows with NULL or empty volume to the bottom.
+        #   2.	Ensures volume is always a number
+        #       •	COALESCE(NULLIF(volume, ''), 0)
+        #       •	Converts empty strings to NULL, then defaults NULL to 0.
+        #   3.	Sorts issue_num correctly as a number
+        #       •	CAST(issue_num AS UNSIGNED) ASC prevents lexicographic sorting.
+        # This should now sort correctly even with mixed NULL, empty, and numeric values
+        $order_by = "CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END, CAST(COALESCE(NULLIF(volume, ''), 0) AS UNSIGNED) ASC, CAST(issue_num AS UNSIGNED) ASC";
         $t->param(ORDER_OLDEST_ITEMS => 1);
     }
     elsif ( $order eq 'oldest_items' ) {
@@ -524,7 +531,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     SQL
     $sth = $dbh->prepare($select);
     $sth->execute(@bind_vars);
-    my $count = 0;
+    my $count = 0; my $dollar_total = 0.00;
     my @comics; my @numbers;
     while (my ($title, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $value, $id, $grade_abbrev, $PSA_grade_abbrev, $PSA_number, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
         $count++;
@@ -532,6 +539,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
         $row{STOCK} = $stock;
         $row{ISSUE_NUM} = $issue_num;
         $row{VALUE} = $value if $value > 0;
+        $dollar_total = $dollar_total + $value;
         push(@numbers, $issue_num); # for finding missing issues below
         $row{YEAR} = $year;
         $row{COMIC_GRADE_ABBREV} = $grade_abbrev;
@@ -578,6 +586,7 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     $t->param(AVERAGE_GRADE => $average_grade);
     $t->param(TOTAL_COLLECTION_COUNT => $total_collection_count);
     $t->param(COUNT => $count);
+    $t->param(DOLLAR_TOTAL => sprintf("%.2f", $dollar_total));
     my @missing;
     if ( $title_id ) {  # only looking for missing if showing a single title
         @missing = findMissing(@numbers);

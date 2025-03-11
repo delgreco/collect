@@ -96,6 +96,7 @@ ON i.title_id = t.id
 LEFT JOIN comic_grades AS cg
 ON i.grade_id = cg.id
 WHERE t.`type` = 'comic'
+AND grade_id > 0
 $and
 $and_new
 $and_title_id

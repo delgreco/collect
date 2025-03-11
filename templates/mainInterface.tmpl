@@ -1,6 +1,6 @@
 <TMPL_INCLUDE NAME="header.tmpl">
 
-<TMPL_IF TITLE><TMPL_VAR TITLE>: </TMPL_IF> (<TMPL_VAR COUNT> items)<!-- <TMPL_IF AVERAGE_YEAR> Average Year: <TMPL_VAR AVERAGE_YEAR>; Average Grade: <TMPL_VAR AVERAGE_GRADE></TMPL_IF> -->
+<TMPL_IF TITLE><TMPL_VAR TITLE>: </TMPL_IF> (<TMPL_VAR COUNT> items<TMPL_IF DOLLAR_TOTAL> - <span style="font-weight: bold; color: #00FF66">$<TMPL_VAR DOLLAR_TOTAL></span></TMPL_IF>)<!-- <TMPL_IF AVERAGE_YEAR> Average Year: <TMPL_VAR AVERAGE_YEAR>; Average Grade: <TMPL_VAR AVERAGE_GRADE></TMPL_IF> -->
 
 <TMPL_IF COMICS>
     <div align="center" style="font-size: 1.3em;">
