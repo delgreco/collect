@@ -274,6 +274,7 @@ sub editCategory {
     my $cat_ref = $dbh->selectrow_hashref($sql, undef, $id);
     $t->param(CATEGORY => $cat_ref->{title});
     $t->param(ID => $id);
+    $t->param(SHOW_MISSING => $cat_ref->{show_missing});
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     $t = _getTitlesDropdown(
         template          => $t,
@@ -454,14 +455,14 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
             $where .= " AND $where_condition";
         }
     }
-    my $title = '';
+    my $title_ref;
     if ( $title_id ) {
         my $select = <<~"SQL";
-        SELECT title FROM titles WHERE id = ?
+        SELECT * FROM titles WHERE id = ?
         SQL
         my $sth = $dbh->prepare($select);
         $sth->execute($title_id);
-        ($title) = $sth->fetchrow_array();
+        ($title_ref) = $sth->fetchrow_hashref();
     }
     # get year list
     my $select = <<~"SQL";
@@ -581,7 +582,8 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     my $average_year = _getAverageYear($title_id);
     my $average_grade = _getAverageGrade($title_id);
     my $total_collection_count = _getTotalCollectionCount();
-    $t->param(TITLE => $title);
+    $t->param(TITLE => $title_ref->{title});
+    $t->param(SHOW_MISSING => $title_ref->{show_missing});
     $t->param(TITLE_ID => $title_id);
     $t->param(AVERAGE_YEAR => $average_year);
     $t->param(AVERAGE_GRADE => $average_grade);
@@ -618,15 +620,17 @@ sub saveCategory {
     my $id;
     my $category = $cgi->param('category');
     my $type = $cgi->param('type');
+    my $show_missing = $cgi->param('show_missing');
+    $show_missing = defined $show_missing ? 1 : 0;
     my $message;
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE titles
-        SET title = ?, `type` = ?
+        SET title = ?, `type` = ?, show_missing = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $category, $type, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $category, $type, $show_missing, $id);
         if ( $rows_updated != 1 ) {
             $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
         }
@@ -635,11 +639,11 @@ sub saveCategory {
     else {
         my $sql = <<~"SQL";
         INSERT INTO titles
-        (title, `type`) 
+        (title, `type`, show_missing) 
         VALUES 
-        (?, ?)
+        (?, ?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $category, $type);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $category, $type, $show_missing);
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }

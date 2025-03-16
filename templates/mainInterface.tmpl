@@ -5,7 +5,7 @@
 <TMPL_IF COMICS>
     <div align="center" style="font-size: 1.3em;">
         <font color="red"><TMPL_VAR TITLE></font> from <font color="red"><TMPL_VAR YEAR></font><br>
-        <TMPL_IF MISSING><center>missing <font color="red"><TMPL_VAR MISSING></font><br></TMPL_IF>
+        <TMPL_IF SHOW_MISSING><TMPL_IF MISSING><center>missing <font color="red"><TMPL_VAR MISSING></font><br></TMPL_IF></TMPL_IF>
     </div> <br>
  
     <div class="grid">

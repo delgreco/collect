@@ -2,7 +2,7 @@
 
 <div style="float: left; width: 50%;">
  
-     <h2><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Category / Title</h2>
+    <h2><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Category / Title</h2>
 
     <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
@@ -13,7 +13,9 @@
     <TMPL_LOOP TYPES>
         <option value="<TMPL_VAR TYPE>" <TMPL_VAR SELECTED>><TMPL_VAR TYPE>
     </TMPL_LOOP>
-    </select> <br><br>
+    </select> &nbsp;&nbsp;
+    
+    <input type="checkbox" name="show_missing" <TMPL_IF SHOW_MISSING>CHECKED</TMPL_IF>> show missing items (issues, card numbers etc.) in series <br><br>
 
     <input type="hidden" name="id" value="<TMPL_VAR ID>">
     <input type="hidden" name="action" value="saveCategory">
