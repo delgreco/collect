@@ -89,37 +89,45 @@ my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
 my $count = 0;
 
 my $select = <<~"SQL";
-SELECT i.id, t.title, issue_num, cg.grade, cg.cgc_number 
+SELECT i.id, t.title, i.volume, i.issue_num, cg.grade, cg.cgc_number 
 FROM items AS i
 LEFT JOIN titles AS t
 ON i.title_id = t.id
 LEFT JOIN comic_grades AS cg
 ON i.grade_id = cg.id
-WHERE t.`type` = 'comic'
-AND grade_id > 0
+WHERE (
+    t.`type` = 'comic'
+    OR 
+    t.`type` = 'magazine'
+)
 $and
 $and_new
 $and_title_id
 SQL
 my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
-while (my ($id, $title, $issue_num, $grade, $grade_number) = $sth->fetchrow_array()) {
+while (my ($id, $title, $volume, $issue_num, $grade, $grade_number) = $sth->fetchrow_array()) {
     $count++;
     last if $count > $limit;
+    $volume = '' unless $volume;
     $grade = '' unless $grade;
     $grade_number = '' unless $grade_number;
+    if ( ! $grade ) {
+        print STDERR "SORRY: cannot assess item without a grade.\n";
+        next;
+    }
     my $response = $api->chat(
         # model => "gpt-3.5-turbo",
          model => "gpt-4-turbo",
         messages => [
-            { role => "system", content => "You are a highly accurate comic book price guide expert. You must estimate the fair market value of comics based on historical sales, market trends, and CGC pricing data. First, determine the appropriate price range for the book. Then, return only the midpoint value of that range, formatted as a number with two decimal places, such as '1300.00'. No text, symbols, or explanations—just the number." },
-            { role => "user", content => "Estimate the fair market value of the following comic book based on recent sales, market trends, and industry standards:\n\nComic Book: $title\nIssue #: $issue_num\nGrade: $grade $grade_number\n\nDetermine the most reliable price range, then return only the midpoint value in USD, formatted as a number with two decimal places (e.g., 1300.00)." }
+            { role => "system", content => "You are a highly accurate comic book and magazine price guide expert. You must estimate the fair market value of comics and magazines based on historical sales, market trends, and CGC pricing data. First, determine the appropriate price range for the book. Then, return only the midpoint value of that range, formatted as a number with two decimal places, such as '1300.00'. No text, symbols, or explanations—just the number." },
+            { role => "user", content => "Estimate the fair market value of the following comic book based on recent sales, market trends, and industry standards:\n\nComic Book: $title\nVolume: $volume\nIssue #: $issue_num\nGrade: $grade $grade_number\n\nDetermine the most reliable price range, then return only the midpoint value in USD, formatted as a number with two decimal places (e.g., 1300.00)." }
         ],
         max_tokens => 100,
         temperature => 0.0
     );
     print Dumper($response) if $verbose;
-    print "Item: $title $issue_num, $grade ($grade_number)\n";
+    print "Item: $title Volume: $volume, Issue $issue_num, $grade ($grade_number)\n";
     my $value = $response->{choices}[0]{message}{content};
     print "Estimated Price: $value\n";
     my $sql = <<~"SQL";
