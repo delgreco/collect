@@ -322,13 +322,8 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     );
     $t->param(ISSUE_NUM => $item_ref->{issue_num});
     $t->param(VOLUME => $item_ref->{volume});
-    # override database value if new filesystem
-    # method is being used
     $t->param(YEAR => $item_ref->{year});
-    # my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
-    # if ( -e $localcover ) {
-    #     $issue_ref->{thumb_url} = "/images/${id}.jpg";
-    # }
+    $t->param(VALUE => $item_ref->{value});
     # show all images
     my $select = <<~"SQL";
     SELECT id, extension, main, notes, stock

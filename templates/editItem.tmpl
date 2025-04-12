@@ -39,18 +39,22 @@
         <TMPL_LOOP COMIC_GRADES>
             <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR CGC_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
         </TMPL_LOOP>
-        </select><br><br>
-    </TMPL_IF>
-
+        </select>
+    </TMPL_IF> 
+    
     <TMPL_IF PSA_GRADING>
         PSA Grade: <select name="PSA_grade_id">
         <option value="">select grade...
         <TMPL_LOOP PSA_GRADES>
             <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR PSA_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
         </TMPL_LOOP>
-        </select><br><br>
+        </select>
     </TMPL_IF>
 
+    <TMPL_IF VALUE>&nbsp;&nbsp;&nbsp; Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE></span></TMPL_IF>
+
+    <br><br>
+    
     Notes: <input style="width: 85%;" type="text" name="notes" value="<TMPL_VAR NOTES>"> <br><br>
 
     <input type="hidden" name="id" value="<TMPL_VAR ID>">
