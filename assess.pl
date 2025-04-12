@@ -29,7 +29,7 @@ Dotenv->load;
 
 =head1 assess
 
-Use AI to assess value of collectible items in a given condition, starting with comic books.
+Use AI to assess value of collectible items in a given condition, starting with comic books and magazines.
 
 =cut
 
@@ -81,7 +81,7 @@ if ( $title_id ) {
 
 my $and_new = '';
 if ( $new ) {
-    $and_new = 'AND i.value = 0.00';
+    $and_new = 'AND ( i.value = 0.00 OR i.value IS NULL )';
 }
 
 my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
@@ -106,16 +106,20 @@ $and_title_id
 SQL
 my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
-while (my ($id, $title, $volume, $issue_num, $grade, $grade_number) = $sth->fetchrow_array()) {
-    $count++;
-    last if $count > $limit;
+while (my ($item_id, $title, $volume, $issue_num, $grade, $grade_number) = $sth->fetchrow_array()) {
     $volume = '' unless $volume;
     $grade = '' unless $grade;
     $grade_number = '' unless $grade_number;
     if ( ! $grade ) {
-        print STDERR "SORRY: cannot assess item without a grade.\n";
+        if ( $id || $verbose ) {
+            # only explain why skipping if processing a single item
+            print STDERR "Item: $title Volume: $volume, Issue $issue_num\n";
+            print STDERR "\t - SORRY: cannot assess item without a grade.\n";
+        }
         next;
     }
+    $count++;
+    last if $count > $limit;
     my $response = $api->chat(
         # model => "gpt-3.5-turbo",
          model => "gpt-4-turbo",
@@ -134,7 +138,7 @@ while (my ($id, $title, $volume, $issue_num, $grade, $grade_number) = $sth->fetc
     UPDATE items SET value = ?
     WHERE id = ?
     SQL
-    my $rows_updated = $dbh->do(qq{$sql}, undef, $value, $id);
+    my $rows_updated = $dbh->do(qq{$sql}, undef, $value, $item_id);
     if ( $rows_updated != 1 ) {
         print STDERR "ERROR: $rows_updated rows updated.\n";
     }

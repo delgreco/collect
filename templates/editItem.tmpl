@@ -4,7 +4,7 @@
 
 <div style="float: left; width: 50%;">
     
-    <h2 style="display: inline; margin-right: 100px;"><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Item</h2>
+    <h2 style="display: inline; margin-right: 100px;"><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> Item<TMPL_IF ID> #<TMPL_VAR ID></TMPL_IF></h2>
 
     <TMPL_IF ID>
         <form style="display: inline;" method="post" action="<TMPL_VAR SCRIPT_NAME>" onSubmit="return confirm('Really delete this issue?');">
