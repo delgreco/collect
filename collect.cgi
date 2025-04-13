@@ -405,12 +405,12 @@ The main image-based view of the collection, in a grid.
 
 =cut
 
-sub mainInterface ( $message = '', $title_id = 0 ) {
+sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     $title_id = $cgi->param('title_id') if ! $title_id;
+    $order = $cgi->param('order') || 'recent_adds' if ! $order;
     my $search=$cgi->param('search') || '';
     my $type=$cgi->param('type');
     my $year=$cgi->param('year');
-    my $order=$cgi->param('order') || 'recent_adds';
     my $t = HTML::Template->new(
         filename => 'templates/mainInterface.tmpl',
     );
@@ -500,6 +500,10 @@ sub mainInterface ( $message = '', $title_id = 0 ) {
     elsif ( $order eq 'oldest_items' ) {
         $t->param(ORDER_OLDEST_ITEMS => 1);
         $order_by = 'year, issue_num';
+    }
+    elsif ( $order eq 'estimated_value' ) {
+        $t->param(ORDER_VALUE => 1);
+        $order_by = 'value DESC';
     }
     else {
         $t->param(ORDER_RECENT_ADDS => 1);

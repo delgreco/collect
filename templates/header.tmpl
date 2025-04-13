@@ -114,8 +114,17 @@ function editItem(id) {
 
     <input type="text" size="15" name="search" value="<TMPL_VAR SEARCH>" placeholder="search text"> &nbsp;
 
+    <select name="order">
+    <option value="">order by...
+    <option value="oldest_items" <TMPL_IF ORDER_OLDEST_ITEMS>SELECTED</TMPL_IF>>oldest items
+    <option value="recent_adds"<TMPL_IF ORDER_RECENT_ADDS>SELECTED</TMPL_IF>>recent additions
+    <option value="estimated_value"<TMPL_IF ORDER_VALUE>SELECTED</TMPL_IF>>estimated value
+    </select> &nbsp;&nbsp;
+
+    <!--
     <input type="radio" name="order" value="recent_adds" <TMPL_IF ORDER_RECENT_ADDS>CHECKED</TMPL_IF>> recent adds &nbsp;&nbsp;
     <input type="radio" name="order" value="oldest_items" <TMPL_IF ORDER_OLDEST_ITEMS>CHECKED</TMPL_IF>> oldest items &nbsp;&nbsp;
+    -->
 
     <TMPL_UNLESS TITLE_ID>
         <select name="type">

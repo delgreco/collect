@@ -37,7 +37,7 @@ Use AI to assess value of collectible items in a given condition, starting with 
 
 Get credentials, connect to the database, and run the assessment.
 
-By default, the program will grab just one record at random and attempt to assess.
+By default, the program will grab just one record and attempt to assess, one that has either never been assessed, or the least recently assessed if all have been assessed before.
 
     ./assess.pl
 
@@ -86,10 +86,18 @@ if ( $new ) {
 
 my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
 
+my $sys_prompt_comic_mag = <<"PROMPT";
+You are a highly accurate comic book and magazine price guide expert.
+You must estimate the fair market value of comics and magazines based on historical sales, market trends, and CGC pricing data. 
+First, determine the appropriate price range for the book.
+Then, return only the midpoint value of that range, formatted as a number with two decimal places, such as '1300.00'.
+No text, symbols, or explanations—just the number.
+PROMPT
+
 my $count = 0;
 
 my $select = <<~"SQL";
-SELECT i.id, t.title, i.volume, i.issue_num, cg.grade, cg.cgc_number 
+SELECT i.id, t.title, i.volume, i.issue_num, i.year, cg.grade, cg.cgc_number, i.value
 FROM items AS i
 LEFT JOIN titles AS t
 ON i.title_id = t.id
@@ -103,39 +111,49 @@ WHERE (
 $and
 $and_new
 $and_title_id
+ORDER BY value_datetime
 SQL
 my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
-while (my ($item_id, $title, $volume, $issue_num, $grade, $grade_number) = $sth->fetchrow_array()) {
+while (my ($item_id, $title, $volume, $issue_num, $year, $grade, $grade_number, $existing_value) = $sth->fetchrow_array()) {
     $volume = '' unless $volume;
     $grade = '' unless $grade;
     $grade_number = '' unless $grade_number;
     if ( ! $grade ) {
         if ( $id || $verbose ) {
             # only explain why skipping if processing a single item
-            print STDERR "Item: $title Volume: $volume, Issue $issue_num\n";
-            print STDERR "\t - SORRY: cannot assess item without a grade.\n";
+            print STDOUT "Item: $title Volume: $volume, Issue $issue_num\n";
+            print STDOUT "\t - SORRY: cannot assess item without a grade.\n";
         }
         next;
     }
     $count++;
     last if $count > $limit;
+    my $user_prompt_comic_mag = <<"USER";
+Estimate the fair market value of the following comic book based on recent sales, market trends, and industry standards:
+Comic Book: $title
+Volume: $volume
+Issue #: $issue_num
+Year: $year
+Grade: $grade $grade_number
+
+Determine the most reliable price range, then return only the midpoint value in USD, formatted as a number with two decimal places (e.g., 1300.00).
+USER
     my $response = $api->chat(
-        # model => "gpt-3.5-turbo",
-         model => "gpt-4-turbo",
+        model => "gpt-4-turbo",
         messages => [
-            { role => "system", content => "You are a highly accurate comic book and magazine price guide expert. You must estimate the fair market value of comics and magazines based on historical sales, market trends, and CGC pricing data. First, determine the appropriate price range for the book. Then, return only the midpoint value of that range, formatted as a number with two decimal places, such as '1300.00'. No text, symbols, or explanations—just the number." },
-            { role => "user", content => "Estimate the fair market value of the following comic book based on recent sales, market trends, and industry standards:\n\nComic Book: $title\nVolume: $volume\nIssue #: $issue_num\nGrade: $grade $grade_number\n\nDetermine the most reliable price range, then return only the midpoint value in USD, formatted as a number with two decimal places (e.g., 1300.00)." }
+            { role => "system", content => $sys_prompt_comic_mag },
+            { role => "user", content => $user_prompt_comic_mag }
         ],
         max_tokens => 100,
         temperature => 0.0
     );
     print Dumper($response) if $verbose;
-    print "Item: $title Volume: $volume, Issue $issue_num, $grade ($grade_number)\n";
+    print "Item: $title Volume: $volume, Issue $issue_num ($year) $grade ($grade_number)\n";
     my $value = $response->{choices}[0]{message}{content};
-    print "Estimated Price: $value\n";
+    print "Estimated Value: \$$value (Previous Estimate: \$$existing_value)\n";
     my $sql = <<~"SQL";
-    UPDATE items SET value = ?
+    UPDATE items SET value = ?, value_datetime = NOW()
     WHERE id = ?
     SQL
     my $rows_updated = $dbh->do(qq{$sql}, undef, $value, $item_id);
