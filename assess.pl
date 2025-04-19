@@ -23,6 +23,7 @@ use FindBin;
 use JSON;
 use Dotenv;
 use Getopt::Long;
+use HTML::Template;
 use OpenAI::API;
 
 Dotenv->load;
@@ -66,6 +67,23 @@ GetOptions (
     "verbose" => \$verbose      # flag, -verbose
 ) or die("Error in command line arguments\n");
 
+# load prompt template objects
+my %prompt_templates = (
+    card => {
+        sys  => HTML::Template->new(filename => 'prompts/sys/card.tmpl'),
+        user => HTML::Template->new(filename => 'prompts/user/card.tmpl', die_on_bad_params => 0),
+    },
+    comic => {
+        sys  => HTML::Template->new(filename => 'prompts/sys/comic.tmpl'),
+        user => HTML::Template->new(filename => 'prompts/user/comic.tmpl', die_on_bad_params => 0),
+    },
+    magazine => {
+        sys  => HTML::Template->new(filename => 'prompts/sys/magazine.tmpl'),
+        user => HTML::Template->new(filename => 'prompts/user/magazine.tmpl', die_on_bad_params => 0),
+    },
+);
+
+
 # only the one record, if given
 my $and = ''; my @bind_vars;
 if ( $id ) {
@@ -97,7 +115,9 @@ PROMPT
 my $count = 0;
 
 my $select = <<~"SQL";
-SELECT i.id, t.title, i.volume, i.issue_num, i.year, cg.grade, cg.cgc_number, i.value
+SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
+i.year AS year, cg.grade AS grade, cg.cgc_number AS grade_number, i.value AS existing_value, 
+t.`type` AS `type`
 FROM items AS i
 LEFT JOIN titles AS t
 ON i.title_id = t.id
@@ -115,51 +135,81 @@ ORDER BY value_datetime
 SQL
 my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
-while (my ($item_id, $title, $volume, $issue_num, $year, $grade, $grade_number, $existing_value) = $sth->fetchrow_array()) {
-    $volume = '' unless $volume;
-    $grade = '' unless $grade;
-    $grade_number = '' unless $grade_number;
-    if ( ! $grade ) {
+#while (my ($item_id, $title, $volume, $issue_num, $year, $grade, $grade_number, $existing_value, $type) = $sth->fetchrow_array()) {
+while (my $i = $sth->fetchrow_hashref()) {
+    $i->{volume} = '' unless $i->{volume};
+    $i->{grade} = '' unless $i->{grade};
+    $i->{grade_number} = '' unless $i->{grade_number};
+    if ( ! $i->{grade} ) {
         if ( $id || $verbose ) {
             # only explain why skipping if processing a single item
-            print STDOUT "Item: $title Volume: $volume, Issue $issue_num\n";
+            print STDOUT "Item: $i->{title} Volume: $i->{volume}, Issue $i->{issue_num}\n";
             print STDOUT "\t - SORRY: cannot assess item without a grade.\n";
         }
         next;
     }
     $count++;
     last if $count > $limit;
-    my $user_prompt_comic_mag = <<"USER";
-Estimate the fair market value of the following comic book based on recent sales, market trends, and industry standards:
-Comic Book: $title
-Volume: $volume
-Issue #: $issue_num
-Year: $year
-Grade: $grade $grade_number
-
-Determine the most reliable price range, then return only the midpoint value in USD, formatted as a number with two decimal places (e.g., 1300.00).
-USER
-    my $response = $api->chat(
+    my $sys_prompt = _sysPrompt($i->{type});
+    my $user_prompt = _userPrompt($i);
+    my $response;
+    $response = $api->chat(
         model => "gpt-4-turbo",
         messages => [
-            { role => "system", content => $sys_prompt_comic_mag },
-            { role => "user", content => $user_prompt_comic_mag }
+            { role => "system", content => $sys_prompt },
+            { role => "user", content => $user_prompt }
         ],
         max_tokens => 100,
         temperature => 0.0
     );
     print Dumper($response) if $verbose;
-    print "Item: $title Volume: $volume, Issue $issue_num ($year) $grade ($grade_number)\n";
+    print "Item: $i->{title} Volume: $i->{volume}, Issue $i->{issue_num} ($i->{year}) $i->{grade} ($i->{grade_number})\n";
     my $value = $response->{choices}[0]{message}{content};
-    print "Estimated Value: \$$value (Previous Estimate: \$$existing_value)\n";
+    print "Estimated Value: \$$value (Previous Estimate: \$$i->{existing_value})\n";
     my $sql = <<~"SQL";
     UPDATE items SET value = ?, value_datetime = NOW()
     WHERE id = ?
     SQL
-    my $rows_updated = $dbh->do(qq{$sql}, undef, $value, $item_id);
+    my $rows_updated = $dbh->do(qq{$sql}, undef, $value, $i->{item_id});
     if ( $rows_updated != 1 ) {
         print STDERR "ERROR: $rows_updated rows updated.\n";
     }
+}
+
+=head1 SUBROUTINES
+
+=head2 _userPrompt
+
+Given a reference to item data, return the appropriate user prompt for an LLM.
+
+=cut
+
+sub _userPrompt {
+    my $i = $_[0];
+    my $t = $prompt_templates{ $i->{type} }->{user};
+    # we turn off die_on_bad_params in HTML::Template
+    # because only some of these will be populated for each type
+    $t->param(VOLUME => $i->{volume});
+    $t->param(TITLE => $i->{title});
+    $t->param(ISSUE_NUM => $i->{issue_num});
+    $t->param(YEAR => $i->{year});
+    $t->param(GRADE => $i->{grade});
+    $t->param(GRADE_NUMBER => $i->{grade_number});
+    return $t->output;
+}
+
+=head2 _sysPrompt
+
+Given an item type, return the appropriate system prompt for an LLM.
+
+=cut
+
+sub _sysPrompt {
+    my $type = $_[0];
+    my $t = $prompt_templates{$type}->{sys};
+    # nothing to replace in system prompt as it is
+    # a general instruction
+    return $t->output;
 }
 
 =head1 AUTHOR

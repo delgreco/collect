@@ -265,8 +265,8 @@ Screen on which to edit a category /title.
 
 =cut
 
-sub editCategory {
-    my $id = $_[0] || $cgi->param('id');
+sub editCategory( $id = 0 ) {
+    $id = $cgi->param('id') unless $id;
     my $t = HTML::Template->new(filename => 'templates/editCategory.tmpl');
     my $sql = <<~"SQL";
     SELECT * FROM titles WHERE id = ?
