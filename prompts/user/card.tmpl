@@ -1,5 +1,10 @@
-You are a highly accurate trading card price guide expert.
-You must estimate the fair market value of trading cards based on historical sales, market trends, and PSA pricing data when a PSA grade is given. 
-First, determine the appropriate price range for the card.
-Then, return only the midpoint value of that range, formatted as a number with two decimal places, such as '1300.00'.
-No text, symbols, or explanations—just the number.
+Estimate the fair market value of the following trading card based on recent sales, market trends, and industry standards:
+Card Set: <TMPL_VAR TITLE>
+Card #: <TMPL_VAR ISSUE_NUM>
+Year: <TMPL_VAR YEAR>
+<TMPL_IF NOTES>Notes: <TMPL_VAR NOTES></TMPL_IF>
+<TMPL_IF PSA_GRADE>PSA Grade: <TMPL_VAR PSA_NUMBER> <TMPL_VAR PSA_GRADE_ABBREV> (<TMPL_VAR PSA_GRADE>)</TMPL_IF>
+
+If you are given a 'PSA Grade' above, then the card is professional graded by PSA and slabbed at that grade.  Otherwise, it is a raw collectible assumed to be in good condition.  Be careful not to take into account listings that have not actually resulted in sales.  If 'Notes' above contain a string in #/# format, be careful not to inflate the value of cards with a /# greater than 100.
+
+Determine the most reliable price range, then return only the midpoint value in USD, formatted as a number with two decimal places (e.g., 1300.00).

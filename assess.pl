@@ -85,7 +85,6 @@ my %prompt_templates = (
     },
 );
 
-
 # only the one record, if given
 my $and = ''; my @bind_vars;
 if ( $id ) {
@@ -106,29 +105,26 @@ if ( $new ) {
 
 my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
 
-my $sys_prompt_comic_mag = <<"PROMPT";
-You are a highly accurate comic book and magazine price guide expert.
-You must estimate the fair market value of comics and magazines based on historical sales, market trends, and CGC pricing data. 
-First, determine the appropriate price range for the book.
-Then, return only the midpoint value of that range, formatted as a number with two decimal places, such as '1300.00'.
-No text, symbols, or explanations—just the number.
-PROMPT
-
 my $count = 0;
 
 my $select = <<~"SQL";
 SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
 i.year AS year, cg.grade AS grade, cg.cgc_number AS grade_number, i.value AS existing_value, 
-t.`type` AS `type`, i.value_datetime AS existing_value_datetime, i.notes AS notes
+t.`type` AS `type`, i.value_datetime AS existing_value_datetime, i.notes AS notes,
+psa.PSA_number AS PSA_number, psa.grade AS PSA_grade, psa.grade_abbrev AS PSA_grade_abbrev
 FROM items AS i
 LEFT JOIN titles AS t
 ON i.title_id = t.id
 LEFT JOIN comic_grades AS cg
 ON i.grade_id = cg.id
+LEFT JOIN PSA_grades AS psa
+ON i.PSA_grade_id = psa.id
 WHERE (
     t.`type` = 'comic'
     OR 
     t.`type` = 'magazine'
+    OR 
+    t.`type` = 'card'
 )
 $and
 $and_new
@@ -144,7 +140,11 @@ while (my $i = $sth->fetchrow_hashref()) {
     $i->{grade_number} = '' unless $i->{grade_number};
     $i->{notes} = 'none' unless $i->{notes};
     $i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
-    if ( ! $i->{grade} ) {
+    if ( 
+        ( $i->{type} eq 'comic' || $i->{type} eq 'magazine' )
+        &&
+        ! $i->{grade} 
+    ) {
         if ( $id || $verbose ) {
             # only explain why skipping if processing a single item
             print STDOUT "Item: $i->{title} Volume: $i->{volume}, Issue $i->{issue_num}\n";
@@ -156,6 +156,7 @@ while (my $i = $sth->fetchrow_hashref()) {
     last if $count > $limit;
     my $sys_prompt = _sysPrompt($i->{type});
     my $user_prompt = _userPrompt($i);
+    print "User Prompt: $user_prompt\n" if $verbose;
     my $response;
     $response = $api->chat(
         model => "gpt-4-turbo",
@@ -167,17 +168,23 @@ while (my $i = $sth->fetchrow_hashref()) {
         temperature => 0.0
     );
     print Dumper($response) if $verbose;
-    print "$i->{title}, Volume: $i->{volume}, Issue $i->{issue_num} ($i->{year}) $i->{grade} ($i->{grade_number})\n";
+    my $issue_or_card = 'Issue';
+    if ( $i->{type} eq 'card' ) {
+        $issue_or_card = 'Card';
+    }
+    my $grade_number_str = '';
+    $grade_number_str = "($i->{grade_number})" if $i->{grade_number};
+    print "$i->{title}, Volume: $i->{volume}, $issue_or_card $i->{issue_num} ($i->{year}) $i->{grade} $grade_number_str\n";
     my $value = $response->{choices}[0]{message}{content};
     # compute % change
     my $sign = ''; my $diff = 0; my $perc_diff = 0; my $color = 'white';
-    if ( $value > $i->{existing_value} ) {
+    if ( $i->{existing_value} && $i->{existing_value} > 0 && $value > $i->{existing_value} ) {
         $sign = '+';
         $diff = $value - $i->{existing_value};
         $perc_diff = $diff / $i->{existing_value} * 100;
         $color = 'bright_green';
     }
-    elsif ( $value < $i->{existing_value} ) {
+    elsif ( $i->{existing_value} && $i->{existing_value} > 0 && $value < $i->{existing_value} ) {
         $sign = '-';
         $diff = $i->{existing_value} - $value;
         $perc_diff = $diff / $i->{existing_value} * 100;
@@ -220,8 +227,12 @@ sub _userPrompt {
     $t->param(TITLE => $i->{title});
     $t->param(ISSUE_NUM => $i->{issue_num});
     $t->param(YEAR => $i->{year});
+    $t->param(PSA_NUMBER => $i->{PSA_number});
+    $t->param(PSA_GRADE => $i->{PSA_grade});
+    $t->param(PSA_GRADE_ABBEV => $i->{PSA_grade_abbrev});
     $t->param(GRADE => $i->{grade});
     $t->param(GRADE_NUMBER => $i->{grade_number});
+    $t->param(NOTES => $i->{notes});
     return $t->output;
 }
 

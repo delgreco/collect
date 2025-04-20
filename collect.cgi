@@ -504,6 +504,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     elsif ( $order eq 'estimated_value' ) {
         $t->param(ORDER_VALUE => 1);
         $order_by = 'value DESC';
+        $t->param(TOTAL_COLLECTION_VALUE => _getTotalCollectionValue());
     }
     else {
         $t->param(ORDER_RECENT_ADDS => 1);
@@ -1001,6 +1002,24 @@ sub _getTotalCollectionCount {
     # commify
     $count =~ s/(?<=\d)(?=(\d{3})+$)/,/g;
     return $count;
+}
+
+=head2 _getTotalCollectionValue()
+
+Return the total estimate retail value of the collection.
+
+=cut
+
+sub _getTotalCollectionValue {
+    my $select = <<~"SQL";
+    SELECT SUM(value) FROM items
+    SQL
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
+    my ($sum) = $sth->fetchrow_array();
+    # commify
+    $sum =~ s/(?<=\d)(?=(\d{3})+$)/,/g;
+    return $sum;
 }
 
 =head2 _getTypesDropdown()
