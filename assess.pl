@@ -20,6 +20,8 @@ use lib qw(
 use Data::Dumper;
 use DBI;
 use FindBin;
+use POSIX;
+use Term::ANSIColor;
 use JSON;
 use Dotenv;
 use Getopt::Long;
@@ -117,7 +119,7 @@ my $count = 0;
 my $select = <<~"SQL";
 SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
 i.year AS year, cg.grade AS grade, cg.cgc_number AS grade_number, i.value AS existing_value, 
-t.`type` AS `type`
+t.`type` AS `type`, i.value_datetime AS existing_value_datetime
 FROM items AS i
 LEFT JOIN titles AS t
 ON i.title_id = t.id
@@ -137,9 +139,10 @@ my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
 #while (my ($item_id, $title, $volume, $issue_num, $year, $grade, $grade_number, $existing_value, $type) = $sth->fetchrow_array()) {
 while (my $i = $sth->fetchrow_hashref()) {
-    $i->{volume} = '' unless $i->{volume};
+    $i->{volume} = 'unspecified' unless $i->{volume};
     $i->{grade} = '' unless $i->{grade};
     $i->{grade_number} = '' unless $i->{grade_number};
+    $i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
     if ( ! $i->{grade} ) {
         if ( $id || $verbose ) {
             # only explain why skipping if processing a single item
@@ -165,7 +168,29 @@ while (my $i = $sth->fetchrow_hashref()) {
     print Dumper($response) if $verbose;
     print "Item: $i->{title} Volume: $i->{volume}, Issue $i->{issue_num} ($i->{year}) $i->{grade} ($i->{grade_number})\n";
     my $value = $response->{choices}[0]{message}{content};
-    print "Estimated Value: \$$value (Previous Estimate: \$$i->{existing_value})\n";
+    # compute % change
+    my $sign = ''; my $diff = 0; my $perc_diff = 0; my $color = 'white';
+    if ( $value > $i->{existing_value} ) {
+        $sign = '+';
+        $diff = $value - $i->{existing_value};
+        $perc_diff = $diff / $i->{existing_value} * 100;
+        $color = 'bright_green';
+    }
+    elsif ( $value < $i->{existing_value} ) {
+        $sign = '-';
+        $diff = $i->{existing_value} - $value;
+        $perc_diff = $diff / $i->{existing_value} * 100;
+        $color = 'red';
+    }
+    else {
+        # no change
+    }
+    my $value_str = color("bright_green") . "\$$value" . color("reset");
+    $diff = sprintf("%.2f", $diff);
+    my $diff_str = color("$color") . "${sign}\$${diff}" . color("reset");
+    $perc_diff = POSIX::round($perc_diff);
+    my $perc_diff_str = color("$color") . "${sign}\%${perc_diff}" . color("reset");
+    print "Estimate: $value_str, Previous ($i->{existing_value_datetime}): \$$i->{existing_value}, $diff_str ($perc_diff_str) change\n";
     my $sql = <<~"SQL";
     UPDATE items SET value = ?, value_datetime = NOW()
     WHERE id = ?
