@@ -119,7 +119,7 @@ my $count = 0;
 my $select = <<~"SQL";
 SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
 i.year AS year, cg.grade AS grade, cg.cgc_number AS grade_number, i.value AS existing_value, 
-t.`type` AS `type`, i.value_datetime AS existing_value_datetime
+t.`type` AS `type`, i.value_datetime AS existing_value_datetime, i.notes AS notes
 FROM items AS i
 LEFT JOIN titles AS t
 ON i.title_id = t.id
@@ -142,6 +142,7 @@ while (my $i = $sth->fetchrow_hashref()) {
     $i->{volume} = 'unspecified' unless $i->{volume};
     $i->{grade} = '' unless $i->{grade};
     $i->{grade_number} = '' unless $i->{grade_number};
+    $i->{notes} = 'none' unless $i->{notes};
     $i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
     if ( ! $i->{grade} ) {
         if ( $id || $verbose ) {
@@ -166,7 +167,7 @@ while (my $i = $sth->fetchrow_hashref()) {
         temperature => 0.0
     );
     print Dumper($response) if $verbose;
-    print "Item: $i->{title} Volume: $i->{volume}, Issue $i->{issue_num} ($i->{year}) $i->{grade} ($i->{grade_number})\n";
+    print "$i->{title}, Volume: $i->{volume}, Issue $i->{issue_num} ($i->{year}) $i->{grade} ($i->{grade_number})\n";
     my $value = $response->{choices}[0]{message}{content};
     # compute % change
     my $sign = ''; my $diff = 0; my $perc_diff = 0; my $color = 'white';
@@ -190,7 +191,8 @@ while (my $i = $sth->fetchrow_hashref()) {
     my $diff_str = color("$color") . "${sign}\$${diff}" . color("reset");
     $perc_diff = POSIX::round($perc_diff);
     my $perc_diff_str = color("$color") . "${sign}\%${perc_diff}" . color("reset");
-    print "Estimate: $value_str, Previous ($i->{existing_value_datetime}): \$$i->{existing_value}, $diff_str ($perc_diff_str) change\n";
+    print "\tID: $i->{item_id}, Notes: $i->{notes}\n";
+    print "\tEstimate: $value_str, Previous ($i->{existing_value_datetime}): \$$i->{existing_value}, $diff_str ($perc_diff_str) change\n";
     my $sql = <<~"SQL";
     UPDATE items SET value = ?, value_datetime = NOW()
     WHERE id = ?
