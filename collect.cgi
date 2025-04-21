@@ -1018,7 +1018,9 @@ sub _getTotalCollectionValue {
     $sth->execute;
     my ($sum) = $sth->fetchrow_array();
     # commify
-    $sum =~ s/(?<=\d)(?=(\d{3})+$)/,/g;
+    $sum = reverse $sum;
+    $sum =~ s/(\d{3})(?=\d)/$1,/g;
+    $sum = reverse $sum;
     return $sum;
 }
 

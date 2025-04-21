@@ -140,6 +140,7 @@ while (my $i = $sth->fetchrow_hashref()) {
     $i->{grade_number} = '' unless $i->{grade_number};
     $i->{notes} = 'none' unless $i->{notes};
     $i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
+    $i->{existing_value} = 0 unless $i->{existing_value};
     if ( 
         ( $i->{type} eq 'comic' || $i->{type} eq 'magazine' )
         &&
