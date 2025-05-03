@@ -85,6 +85,29 @@ a:hover   {color:#FF33CC; text-decoration:underline;}
 
 <script>
 
+function clearForm() {
+    const form = document.getElementById('search_form');
+    form.reset(); // reset to default
+    // clear values manually in case defaults exist
+    Array.from(form.elements).forEach(element => {
+        switch (element.type) {
+        case 'text':
+        case 'email':
+        case 'textarea':
+            element.value = '';
+            break;
+        case 'checkbox':
+        case 'radio':
+            element.checked = false;
+            break;
+        case 'select-one':
+        case 'select-multiple':
+            element.selectedIndex = 0;
+            break;
+        }
+    });
+}
+
 function editItem(id) {
     $('#id').val( id );
     $('#edit_issue_form').submit();    
@@ -110,7 +133,9 @@ function editItem(id) {
 
 <div style="float: left;">
 
-    <form method="post" action="<TMPL_VAR SCRIPT_NAME>">
+    <form id="search_form" method="post" action="<TMPL_VAR SCRIPT_NAME>">
+
+    <input type="button" value="Reset" onClick="clearForm();"> &nbsp;&nbsp;
 
     <input type="text" size="15" name="search" value="<TMPL_VAR SEARCH>" placeholder="search text"> &nbsp;
 
@@ -149,7 +174,7 @@ function editItem(id) {
     </TMPL_LOOP>
     </select> &nbsp;&nbsp;
     
-    <input type="submit" value="Gallery">
+    <input type="submit" value="Gallery"> &nbsp;&nbsp;
 <!-- deemed too embarrassing ;)
     <input type="checkbox" name="beast_appear" <TMPL_IF BEAST_APPEAR>CHECKED</TMPL_IF>> Beast Appearance &nbsp;&nbsp;&nbsp;&nbsp;
     <input type="checkbox" name="beast_cover" <TMPL_IF BEAST_COVER>CHECKED</TMPL_IF>> Beast Cover
