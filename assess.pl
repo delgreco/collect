@@ -59,12 +59,13 @@ my $dbh = DBI->connect(
     }
 ) || die "Connect failed: $DBI::errstr\n"; 
 
-my $limit = 1; my $id = 0; my $title_id = 0;
+my $limit = 1; my $id = 0; my $title_id = 0; my $type = '';
 my $verbose; my $new;
 GetOptions (
     "limit=i" => \$limit,       # --limit=[limit]
     "id=i"    => \$id,          # --id=[id]
     "title_id=i" => \$title_id, # --id=[id]
+    "type=s"  => \$type,        # --type=[type]
     "new"     => \$new,         # flag, -new (only process unassessed items)
     "verbose" => \$verbose      # flag, -verbose
 ) or die("Error in command line arguments\n");
@@ -106,6 +107,8 @@ if ( $new ) {
 my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
 
 my $count = 0;
+my $batch_total_now     = 0;
+my $batch_total_previous = 0;
 
 my $select = <<~"SQL";
 SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
@@ -133,8 +136,11 @@ ORDER BY value_datetime
 SQL
 my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
-#while (my ($item_id, $title, $volume, $issue_num, $year, $grade, $grade_number, $existing_value, $type) = $sth->fetchrow_array()) {
 while (my $i = $sth->fetchrow_hashref()) {
+    if ( $type && $i->{type} ne $type ) {
+        print STDOUT "Skipping as not type '$type'.\n" if $id || $verbose;
+        next;
+    }
     $i->{volume} = 'unspecified' unless $i->{volume};
     $i->{grade} = '' unless $i->{grade};
     $i->{grade_number} = '' unless $i->{grade_number};
@@ -209,6 +215,21 @@ while (my $i = $sth->fetchrow_hashref()) {
     if ( $rows_updated != 1 ) {
         print STDERR "ERROR: $rows_updated rows updated.\n";
     }
+    $batch_total_now += $value;
+    $batch_total_previous += $i->{existing_value} if defined $i->{existing_value};
+}
+
+if ( $limit > 1 ) {
+    my $batch_diff        = $batch_total_now - $batch_total_previous;
+    my $batch_sign        = $batch_diff > 0 ? '+' : $batch_diff < 0 ? '-' : '';
+    my $batch_color       = $batch_diff > 0 ? 'bright_green' : $batch_diff < 0 ? 'red' : 'white';
+    my $batch_diff_abs    = sprintf("%.2f", abs($batch_diff));
+    my $batch_perc_diff   = $batch_total_previous > 0
+                        ? sprintf("%.0f", abs($batch_diff) / $batch_total_previous * 100)
+                        : 0;
+    my $batch_diff_str        = color($batch_color) . "${batch_sign}\$${batch_diff_abs}" . color("reset");
+    my $batch_perc_diff_str   = color($batch_color) . "${batch_sign}\%${batch_perc_diff}" . color("reset");
+    say "\nTotal Estimate (batch): $batch_diff_str ($batch_perc_diff_str) change";
 }
 
 =head1 SUBROUTINES
