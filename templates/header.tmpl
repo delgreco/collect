@@ -131,7 +131,7 @@ function editItem(id) {
 
 </div>
 
-<div style="float: left;">
+<div style="float: left; filter: invert(1);">
 
     <form id="search_form" method="post" action="<TMPL_VAR SCRIPT_NAME>">
 
@@ -145,11 +145,6 @@ function editItem(id) {
     <option value="recent_adds"<TMPL_IF ORDER_RECENT_ADDS>SELECTED</TMPL_IF>>recent additions
     <option value="estimated_value"<TMPL_IF ORDER_VALUE>SELECTED</TMPL_IF>>estimated value
     </select> &nbsp;&nbsp;
-
-    <!--
-    <input type="radio" name="order" value="recent_adds" <TMPL_IF ORDER_RECENT_ADDS>CHECKED</TMPL_IF>> recent adds &nbsp;&nbsp;
-    <input type="radio" name="order" value="oldest_items" <TMPL_IF ORDER_OLDEST_ITEMS>CHECKED</TMPL_IF>> oldest items &nbsp;&nbsp;
-    -->
 
     <TMPL_UNLESS TITLE_ID>
         <select name="type">
@@ -175,11 +170,8 @@ function editItem(id) {
     </select> &nbsp;&nbsp;
     
     <input type="submit" value="Gallery"> &nbsp;&nbsp;
-<!-- deemed too embarrassing ;)
-    <input type="checkbox" name="beast_appear" <TMPL_IF BEAST_APPEAR>CHECKED</TMPL_IF>> Beast Appearance &nbsp;&nbsp;&nbsp;&nbsp;
-    <input type="checkbox" name="beast_cover" <TMPL_IF BEAST_COVER>CHECKED</TMPL_IF>> Beast Cover
--->
-</form>
+    </form>
+
 </div>
 
 <div style="float: right;">
