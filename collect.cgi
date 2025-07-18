@@ -324,6 +324,7 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     $t->param(VOLUME => $item_ref->{volume});
     $t->param(YEAR => $item_ref->{year});
     $t->param(VALUE => $item_ref->{value});
+    $t->param(VALUE_DATETIME => $item_ref->{value_datetime});
     # show all images
     my $select = <<~"SQL";
     SELECT id, extension, main, notes, stock
