@@ -51,7 +51,7 @@
         </select>
     </TMPL_IF>
 
-    <TMPL_IF VALUE>&nbsp;&nbsp;&nbsp; Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE> (<TMPL_VAR VALUE_DATETIME>)</span></TMPL_IF>
+    <TMPL_IF VALUE>&nbsp;&nbsp;&nbsp; Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE></span> (<TMPL_VAR VALUE_DATETIME>) <button onClick="estimateValue(<TMPL_VAR ID>); return false;">Get New Estimate</button><TMPL_ELSE><button onClick="estimateValue(<TMPL_VAR ID>); return false;">Estimate Value</button></TMPL_IF>
 
     <br><br>
     
@@ -117,10 +117,15 @@
 
 <div style="clear: both;"></div>
 
-<form id="delete_form">
+<form id="delete_form" method="post" action="">
 <input type="hidden" name="action" value="deleteImage">
 <input type="hidden" id="delete_image_id" name="id" value="">
 <input type="hidden" name="item_id" value="<TMPL_VAR ID>">
+</form>
+
+<form id="estimate_value" method="post" action="">
+<input type="hidden" name="action" value="estimateValue">
+<input type="hidden" name="id" value="">
 </form>
 
 <script>
@@ -133,6 +138,24 @@ function deleteImage(id) {
         document.getElementById('delete_image_id').value = id;
         document.getElementById('delete_form').submit();
     }
+}
+
+function estimateValue(id) {
+    // get the form
+    const form = document.getElementById('estimate_value');
+    if ( ! form ) {
+        console.error('Form with id "estimate_value" not found.');
+        return;
+    }
+    // get the input element on the form with name of 'id'
+    const input = form.querySelector('input[name="id"]');
+    if ( ! input ) {
+        console.error('Input with name "id" not found in the form.');
+        return; 
+    }
+    // assign the passed-in id to the hidden form field and submit
+    input.value = id;
+    form.submit();
 }
 
 function setImage(filename, id) {

@@ -26,9 +26,12 @@ use FindBin;
 use HTML::Template;
 use JSON;
 use Dotenv;
-use OpenAI::API;
+#use OpenAI::API;
 
 Dotenv->load;
+my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
+
+use Collect;
 
 # batteries not included,
 # but this module expected at the level above (..)
@@ -290,7 +293,7 @@ sub editCategory( $id = 0 ) {
 
 =head2 editItem($id, $title_id, $message)
 
-Screen on which to edit an issue record.
+Screen on which to view/edit an item record.
 
 =cut
 
@@ -378,6 +381,112 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     $t->param(MESSAGE => $message);
     print "Content-type: text/html\n\n";
     print $t->output;
+}
+
+=head2 estimateValue
+
+Get a new value estimate for the item and return to the item page.
+
+=cut
+
+sub estimateValue {
+    my $id = $cgi->param('id');
+    my $diff = 0; my $perc_diff = 0;
+    my $sign = '';
+    # only the one record
+    my $and = ''; my @bind_vars;
+    if ( $id ) {
+        $and = 'AND i.id = ?';
+        push(@bind_vars, $id);
+    }
+    my $select = <<~"SQL";
+    SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
+    i.year AS year, cg.grade AS grade, cg.cgc_number AS grade_number, i.value AS existing_value, 
+    t.`type` AS `type`, i.value_datetime AS existing_value_datetime, i.notes AS notes,
+    psa.PSA_number AS PSA_number, psa.grade AS PSA_grade, psa.grade_abbrev AS PSA_grade_abbrev
+    FROM items AS i
+    LEFT JOIN titles AS t
+    ON i.title_id = t.id
+    LEFT JOIN comic_grades AS cg
+    ON i.grade_id = cg.id
+    LEFT JOIN PSA_grades AS psa
+    ON i.PSA_grade_id = psa.id
+    WHERE (
+        t.`type` = 'comic'
+        OR 
+        t.`type` = 'magazine'
+        OR 
+        t.`type` = 'card'
+    )
+    $and
+    SQL
+    my $sth = $dbh->prepare($select);
+    $sth->execute(@bind_vars);
+    while (my $i = $sth->fetchrow_hashref()) {
+        $i->{volume} = 'unspecified' unless $i->{volume};
+        $i->{grade} = '' unless $i->{grade};
+        $i->{grade_number} = '' unless $i->{grade_number};
+        $i->{notes} = 'none' unless $i->{notes};
+        $i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
+        $i->{existing_value} = 0 unless $i->{existing_value};
+        # TODO: address this in web view
+        # if ( 
+        #     ( $i->{type} eq 'comic' || $i->{type} eq 'magazine' )
+        #     &&
+        #     ! $i->{grade} 
+        # ) {
+        #     if ( $id || $verbose ) {
+        #         # only explain why skipping if processing a single item
+        #         print STDOUT "Item: $i->{title} Volume: $i->{volume}, Issue $i->{issue_num}\n";
+        #         print STDOUT "\t - SORRY: cannot assess item without a grade.\n";
+        #     }
+        #     next;
+        # }
+        my $sys_prompt = Collect::sysPrompt($i->{type});
+        my $user_prompt = Collect::userPrompt($i);
+        my $response;
+        $response = $api->chat(
+            model => "gpt-4-turbo",
+            messages => [
+                { role => "system", content => $sys_prompt },
+                { role => "user", content => $user_prompt }
+            ],
+            max_tokens => 100,
+            temperature => 0.0
+        );
+        my $issue_or_card = 'Issue';
+        if ( $i->{type} eq 'card' ) {
+            $issue_or_card = 'Card';
+        }
+        my $grade_number_str = '';
+        $grade_number_str = "($i->{grade_number})" if $i->{grade_number};
+        my $value = $response->{choices}[0]{message}{content};
+        # compute % change
+        if ( $i->{existing_value} && $i->{existing_value} > 0 && $value > $i->{existing_value} ) {
+            $sign = '+';
+            $diff = $value - $i->{existing_value};
+            $perc_diff = $diff / $i->{existing_value} * 100;
+        }
+        elsif ( $i->{existing_value} && $i->{existing_value} > 0 && $value < $i->{existing_value} ) {
+            $sign = '-';
+            $diff = $i->{existing_value} - $value;
+            $perc_diff = $diff / $i->{existing_value} * 100;
+        }
+        else {
+            # no change
+        }
+        $diff = sprintf("%.2f", $diff);
+        $perc_diff = POSIX::round($perc_diff);
+        my $sql = <<~"SQL";
+        UPDATE items SET value = ?, value_datetime = NOW()
+        WHERE id = ?
+        SQL
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $value, $i->{item_id});
+        if ( $rows_updated != 1 ) {
+            print STDERR "ERROR: $rows_updated rows updated.\n";
+        }
+    }
+    editItem( $id, '', "New estimate fetched.  \$${sign}${diff} ${sign}${perc_diff}\% change." );
 }
 
 =head2 findMissing()
