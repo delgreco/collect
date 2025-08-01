@@ -51,7 +51,9 @@
         </select>
     </TMPL_IF>
 
-    <TMPL_IF VALUE>&nbsp;&nbsp;&nbsp; Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE></span> (<TMPL_VAR VALUE_DATETIME>) <button onClick="estimateValue(<TMPL_VAR ID>); return false;">Get New Estimate</button><TMPL_ELSE><button onClick="estimateValue(<TMPL_VAR ID>); return false;">Estimate Value</button></TMPL_IF>
+    <TMPL_IF ID>
+        <TMPL_IF VALUE>&nbsp;&nbsp;&nbsp; Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE></span> (<TMPL_VAR VALUE_DATETIME>) <button onClick="estimateValue(<TMPL_VAR ID>); return false;">Get New Estimate</button><TMPL_ELSE><button onClick="estimateValue(<TMPL_VAR ID>); return false;">Estimate Value</button></TMPL_IF>
+    </TMPL_IF>
 
     <br><br>
     

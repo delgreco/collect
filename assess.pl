@@ -73,22 +73,6 @@ GetOptions (
     "verbose" => \$verbose      # flag, -verbose
 ) or die("Error in command line arguments\n");
 
-# load prompt template objects
-# my %prompt_templates = (
-#     card => {
-#         sys  => HTML::Template->new(filename => 'prompts/sys/card.tmpl'),
-#         user => HTML::Template->new(filename => 'prompts/user/card.tmpl', die_on_bad_params => 0),
-#     },
-#     comic => {
-#         sys  => HTML::Template->new(filename => 'prompts/sys/comic.tmpl'),
-#         user => HTML::Template->new(filename => 'prompts/user/comic.tmpl', die_on_bad_params => 0),
-#     },
-#     magazine => {
-#         sys  => HTML::Template->new(filename => 'prompts/sys/magazine.tmpl'),
-#         user => HTML::Template->new(filename => 'prompts/user/magazine.tmpl', die_on_bad_params => 0),
-#     },
-# );
-
 # only the one record, if given
 my $and = ''; my @bind_vars;
 if ( $id ) {
@@ -176,7 +160,7 @@ while (my $i = $sth->fetchrow_hashref()) {
             { role => "system", content => $sys_prompt },
             { role => "user", content => $user_prompt }
         ],
-        max_tokens => 100,
+        max_tokens => 10,
         temperature => 0.0
     );
     print Dumper($response) if $verbose;
@@ -236,46 +220,6 @@ if ( $limit > 1 ) {
     my $batch_perc_diff_str   = color($batch_color) . "${batch_sign}\%${batch_perc_diff}" . color("reset");
     say "\nTotal Estimate (batch): $batch_diff_str ($batch_perc_diff_str) change";
 }
-
-=head1 SUBROUTINES
-
-=head2 _userPrompt
-
-Given a reference to item data, return the appropriate user prompt for an LLM.
-
-=cut
-
-# sub _userPrompt {
-#     my $i = $_[0];
-#     my $t = $prompt_templates{ $i->{type} }->{user};
-#     # we turn off die_on_bad_params in HTML::Template
-#     # because only some of these will be populated for each type
-#     $t->param(VOLUME => $i->{volume});
-#     $t->param(TITLE => $i->{title});
-#     $t->param(ISSUE_NUM => $i->{issue_num});
-#     $t->param(YEAR => $i->{year});
-#     $t->param(PSA_NUMBER => $i->{PSA_number});
-#     $t->param(PSA_GRADE => $i->{PSA_grade});
-#     $t->param(PSA_GRADE_ABBEV => $i->{PSA_grade_abbrev});
-#     $t->param(GRADE => $i->{grade});
-#     $t->param(GRADE_NUMBER => $i->{grade_number});
-#     $t->param(NOTES => $i->{notes});
-#     return $t->output;
-# }
-
-=head2 _sysPrompt
-
-Given an item type, return the appropriate system prompt for an LLM.
-
-=cut
-
-# sub _sysPrompt {
-#     my $type = $_[0];
-#     my $t = $prompt_templates{$type}->{sys};
-#     # nothing to replace in system prompt as it is
-#     # a general instruction
-#     return $t->output;
-# }
 
 =head1 AUTHOR
 
