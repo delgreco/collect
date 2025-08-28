@@ -366,8 +366,8 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     $t->param(IMAGES => \@images);
     $t->param(IMAGES_JSON => to_json(\%images));
     $t->param(MAIN_IMAGE_FILENAME => $main_image_filename);
-    $t->param(THUMB_URL => $item_ref->{thumb_url});           # NOTE: deprecated
-    $t->param(IMAGE_PAGE_URL => $item_ref->{image_page_url}); # NOTE: deprecated
+    $t->param(PURCHASED_FOR => $item_ref->{purchased_for});
+    $t->param(PURCHASED_ON => $item_ref->{purchased_on});
     $t->param(NOTES => $item_ref->{notes});
     $t->param(ID => $id);
     $t->param(TITLE_ID => $title_id || $item_ref->{title_id});
@@ -850,10 +850,10 @@ sub saveItem {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE items
-        SET title_id = ?, issue_num = ?, volume = ?, year = ?, notes = ?, grade_id = ?, PSA_grade_id = ?
+        SET title_id = ?, issue_num = ?, volume = ?, year = ?, notes = ?, grade_id = ?, PSA_grade_id = ?, purchased_for = ?, purchased_on = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $cgi->param('purchased_for'), $cgi->param('purchased_on'), $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
@@ -864,11 +864,11 @@ sub saveItem {
     else {
         my $sql = <<~"SQL";
         INSERT INTO items
-        (title_id, issue_num, volume, year, notes, grade_id, PSA_grade_id, added)
+        (title_id, issue_num, volume, year, notes, grade_id, PSA_grade_id, added, purchased_for, purchased_on)
         VALUES
-        (?, ?, ?, ?, ?, ?, ?, NOW())
+        (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $cgi->param('purchased_for'), $cgi->param('purchased_on'));
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
