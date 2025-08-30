@@ -846,6 +846,8 @@ sub saveItem {
     my $id; my $message = '';
     my $grade_id = $cgi->param('grade_id') || 0;
     my $PSA_grade_id = $cgi->param('PSA_grade_id') || 0;
+    my $purchased_for = $cgi->param('purchased_for') || undef;
+    my $purchased_on = $cgi->param('purchased_on') || undef;
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
@@ -853,7 +855,7 @@ sub saveItem {
         SET title_id = ?, issue_num = ?, volume = ?, year = ?, notes = ?, grade_id = ?, PSA_grade_id = ?, purchased_for = ?, purchased_on = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $cgi->param('purchased_for'), $cgi->param('purchased_on'), $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $purchased_for, $purchased_on, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
@@ -868,7 +870,7 @@ sub saveItem {
         VALUES
         (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $cgi->param('purchased_for'), $cgi->param('purchased_on'));
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $purchased_for, $purchased_on);
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
