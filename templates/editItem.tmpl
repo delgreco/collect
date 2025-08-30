@@ -53,7 +53,7 @@
         Purchased For: $<input type="text" size="12" name="purchased_for" value="<TMPL_VAR PURCHASED_FOR>"> &nbsp;&nbsp;&nbsp; Purchased On: <input type="date" name="purchased_on" value="<TMPL_VAR PURCHASED_ON>"> <br><br>
 
         <TMPL_IF ID>
-            <TMPL_IF VALUE>Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE></span> (<TMPL_VAR VALUE_DATETIME>) <button onClick="estimateValue(<TMPL_VAR ID>); return false;">Get New Estimate</button><TMPL_ELSE><button onClick="estimateValue(<TMPL_VAR ID>); return false;">Estimate Value</button></TMPL_IF>
+            <TMPL_IF VALUE>Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE></span> (<TMPL_VAR VALUE_DATETIME>) <button onClick="estimateValue(<TMPL_VAR ID>); return false;">Get New Estimate</button><TMPL_ELSE><TMPL_IF COMIC_GRADE_ID><button onClick="estimateValue(<TMPL_VAR ID>); return false;">Estimate Value</button></TMPL_IF></TMPL_IF>
         </TMPL_IF>
 
         <br><br>

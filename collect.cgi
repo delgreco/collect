@@ -373,6 +373,7 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     $t->param(TITLE_ID => $title_id || $item_ref->{title_id});
     if ( $cat_ref->{type} =~ m/comic|magazine/ ) {
         $t->param(COMIC_MAG_GRADING => 1);
+        $t->param(COMIC_GRADE_ID => $item_ref->{grade_id});
     }
     if ( $cat_ref->{type} =~ m/card/ ) {
         $t->param(PSA_GRADING => 1);
