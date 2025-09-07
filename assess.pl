@@ -99,16 +99,16 @@ my $batch_total_previous = 0;
 
 my $select = <<~"SQL";
 SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
-i.year AS year, cg.grade AS grade, cg.cgc_number AS grade_number, i.value AS existing_value, 
+i.year AS year, g_comics.grade AS grade, g_comics.cgc_number AS grade_number, i.value AS existing_value, 
 t.`type` AS `type`, i.value_datetime AS existing_value_datetime, i.notes AS notes,
-psa.PSA_number AS PSA_number, psa.grade AS PSA_grade, psa.grade_abbrev AS PSA_grade_abbrev
+g_cards.PSA_number AS PSA_number, g_cards.grade AS PSA_grade, g_cards.grade_abbrev AS PSA_grade_abbrev
 FROM items AS i
 LEFT JOIN titles AS t
 ON i.title_id = t.id
-LEFT JOIN comic_grades AS cg
-ON i.grade_id = cg.id
-LEFT JOIN PSA_grades AS psa
-ON i.PSA_grade_id = psa.id
+LEFT JOIN grades_comics g_comics
+ON i.grade_id = g_comics.id
+LEFT JOIN grades_cards AS g_cards
+ON i.PSA_grade_id = g_cards.id
 WHERE (
     t.`type` = 'comic'
     OR 

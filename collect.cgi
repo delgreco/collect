@@ -323,6 +323,11 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
         template => $t,
         selected_id => $item_ref->{PSA_grade_id},
     );
+    $t = _getBookGradesDropdown(
+        template => $t,
+        selected_id => $item_ref->{book_grade_id},
+    );
+    $t->param(TYPE => $cat_ref->{type});
     $t->param(ISSUE_NUM => $item_ref->{issue_num});
     $t->param(VOLUME => $item_ref->{volume});
     $t->param(YEAR => $item_ref->{year});
@@ -378,6 +383,9 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     if ( $cat_ref->{type} =~ m/card/ ) {
         $t->param(PSA_GRADING => 1);
     }
+    if ( $cat_ref->{type} =~ m/book/ ) {
+        $t->param(BOOK_GRADING => 1);
+    }
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     $t->param(MESSAGE => $message);
     print "Content-type: text/html\n\n";
@@ -408,7 +416,7 @@ sub estimateValue {
     FROM items AS i
     LEFT JOIN titles AS t
     ON i.title_id = t.id
-    LEFT JOIN comic_grades AS cg
+    LEFT JOIN grades_comics AS cg
     ON i.grade_id = cg.id
     LEFT JOIN PSA_grades AS psa
     ON i.PSA_grade_id = psa.id
@@ -624,17 +632,17 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     # get items
     $select = <<~"SQL";
     SELECT t.title, volume, issue_num, year, thumb_url, image_page_url, item.notes, storage, item.value, 
-    item.id AS the_id, g.grade_abbrev, psa.grade_abbrev, psa.PSA_number, image.id, image.main, image.extension, image.stock, image.notes, 
+    item.id AS the_id, g_comics.grade_abbrev, g_cards.grade_abbrev, g_cards.PSA_number, image.id, image.main, image.extension, image.stock, image.notes, 
     (SELECT COUNT(*) FROM images WHERE item_id = the_id)
     FROM items AS item
     LEFT JOIN images AS image
     ON image.item_id = item.id
     LEFT JOIN titles AS t
     ON t.id = item.title_id
-    LEFT JOIN comic_grades AS g
-    ON g.id = grade_id
-    LEFT JOIN PSA_grades AS psa
-    ON psa.id = PSA_grade_id
+    LEFT JOIN grades_comics AS g_comics
+    ON g_comics.id = grade_id
+    LEFT JOIN grades_cards AS g_cards
+    ON g_cards.id = PSA_grade_id
     $where 
     GROUP BY item.id, image.id
     HAVING image.main = 1 OR image.main IS NULL
@@ -846,17 +854,18 @@ Add or update an issue from L</editItem()>.
 sub saveItem {
     my $id; my $message = '';
     my $grade_id = $cgi->param('grade_id') || 0;
-    my $PSA_grade_id = $cgi->param('PSA_grade_id') || 0;
+    my $book_grade_id = $cgi->param('book_grade_id') || undef;
+    my $PSA_grade_id = $cgi->param('PSA_grade_id') || undef;
     my $purchased_for = $cgi->param('purchased_for') || undef;
     my $purchased_on = $cgi->param('purchased_on') || undef;
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
         UPDATE items
-        SET title_id = ?, issue_num = ?, volume = ?, year = ?, notes = ?, grade_id = ?, PSA_grade_id = ?, purchased_for = ?, purchased_on = ?
+        SET title_id = ?, issue_num = ?, volume = ?, year = ?, notes = ?, grade_id = ?, book_grade_id = ?, PSA_grade_id = ?, purchased_for = ?, purchased_on = ?
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $purchased_for, $purchased_on, $id);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $book_grade_id, $PSA_grade_id, $purchased_for, $purchased_on, $id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
@@ -867,11 +876,11 @@ sub saveItem {
     else {
         my $sql = <<~"SQL";
         INSERT INTO items
-        (title_id, issue_num, volume, year, notes, grade_id, PSA_grade_id, added, purchased_for, purchased_on)
+        (title_id, issue_num, volume, year, notes, grade_id, book_grade_id, PSA_grade_id, added, purchased_for, purchased_on)
         VALUES
-        (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
+        (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $PSA_grade_id, $purchased_for, $purchased_on);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('title_id'), $cgi->param('issue_num'), $cgi->param('volume'), $cgi->param('year'), $cgi->param('notes'), $grade_id, $book_grade_id, $PSA_grade_id, $purchased_for, $purchased_on);
         if ( $rows_inserted != 1 ) {
             IX::Debug::log("ERROR: $rows_inserted rows inserted.");
         }
@@ -958,7 +967,7 @@ sub _getAverageGrade {
     }
     my $select = <<~"SQL";
     SELECT ROUND(AVG(cgc_number), 1) FROM items
-    LEFT JOIN comic_grades AS g
+    LEFT JOIN grades_comics AS g
     ON g.id = grade_id
     $where
     SQL
@@ -981,7 +990,7 @@ sub _getComicGradesDropdown {
     my @grades;
     my $select = <<~"SQL";
     SELECT grade, grade_abbrev, id, cgc_number
-    FROM comic_grades
+    FROM grades_comics
     ORDER BY cgc_number
     SQL
     my $sth = $dbh->prepare($select);
@@ -1033,6 +1042,38 @@ sub _getMostRecentYear {
     return $most_recent_year;
 }
 
+=head2 _getBookGradesDropdown()
+
+Given a template object, return that object populated with a selector for book grades.
+
+=cut
+
+sub _getBookGradesDropdown {
+    my %arg = @_;
+    my $t = $arg{template};
+    my $selected_id = $arg{selected_id} || '';
+    my @grades;
+    my $select = <<~"SQL";
+    SELECT grade, id, description
+    FROM grades_books
+    ORDER BY id DESC
+    SQL
+    my $sth = $dbh->prepare($select);
+    $sth->execute;
+    while (my ($grade, $id, $desc) = $sth->fetchrow_array()) {
+        my %row;
+        if ( $selected_id eq $id ) {
+            $row{SELECTED} = 'SELECTED';
+        }
+        $row{GRADE} = $grade;
+        # $row{DESC} = $desc;
+        $row{ID} = $id;
+        push(@grades, \%row);
+    }
+    $t->param(BOOK_GRADES => \@grades);
+    return $t;
+}
+
 =head2 _getPSAGradesDropdown()
 
 Given a template object, return that object populated with a selector for PSA grades.
@@ -1046,7 +1087,7 @@ sub _getPSAGradesDropdown {
     my @grades;
     my $select = <<~"SQL";
     SELECT grade, grade_abbrev, id, PSA_number
-    FROM PSA_grades
+    FROM grades_cards
     ORDER BY PSA_number
     SQL
     my $sth = $dbh->prepare($select);
