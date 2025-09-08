@@ -10,6 +10,10 @@ use OpenAI::API;
 
 # load prompt template objects
 my %prompt_templates = (
+    book => {
+        sys  => HTML::Template->new(filename => 'prompts/sys/book.tmpl'),
+        user => HTML::Template->new(filename => 'prompts/user/book.tmpl', die_on_bad_params => 0),
+    },
     card => {
         sys  => HTML::Template->new(filename => 'prompts/sys/card.tmpl'),
         user => HTML::Template->new(filename => 'prompts/user/card.tmpl', die_on_bad_params => 0),

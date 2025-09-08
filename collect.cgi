@@ -378,13 +378,17 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     $t->param(TITLE_ID => $title_id || $item_ref->{title_id});
     if ( $cat_ref->{type} =~ m/comic|magazine/ ) {
         $t->param(COMIC_MAG_GRADING => 1);
-        $t->param(COMIC_GRADE_ID => $item_ref->{grade_id});
+        # $t->param(COMIC_GRADE_ID => $item_ref->{grade_id});
     }
     if ( $cat_ref->{type} =~ m/card/ ) {
         $t->param(PSA_GRADING => 1);
     }
     if ( $cat_ref->{type} =~ m/book/ ) {
         $t->param(BOOK_GRADING => 1);
+    }
+    # show estimate button?
+    if ( $item_ref->{grade_id} || $item_ref->{book_grade_id} || $item_ref->{PSA_grade_id} ) {
+        $t->param(HAS_GRADE => 1);
     }
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     $t->param(MESSAGE => $message);
@@ -410,22 +414,27 @@ sub estimateValue {
     }
     my $select = <<~"SQL";
     SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
-    i.year AS year, cg.grade AS grade, cg.cgc_number AS grade_number, i.value AS existing_value, 
+    i.year AS year, g_comics.grade AS grade, g_comics.cgc_number AS grade_number, i.value AS existing_value, 
     t.`type` AS `type`, i.value_datetime AS existing_value_datetime, i.notes AS notes,
-    psa.PSA_number AS PSA_number, psa.grade AS PSA_grade, psa.grade_abbrev AS PSA_grade_abbrev
+    g_cards.PSA_number AS PSA_number, g_cards.grade AS PSA_grade, g_cards.grade_abbrev AS PSA_grade_abbrev,
+    g_books.grade
     FROM items AS i
     LEFT JOIN titles AS t
     ON i.title_id = t.id
-    LEFT JOIN grades_comics AS cg
-    ON i.grade_id = cg.id
-    LEFT JOIN PSA_grades AS psa
-    ON i.PSA_grade_id = psa.id
+    LEFT JOIN grades_comics AS g_comics
+    ON i.grade_id = g_comics.id
+    LEFT JOIN grades_cards AS g_cards
+    ON i.PSA_grade_id = g_cards.id
+    LEFT JOIN grades_books AS g_books
+    ON g_books.id = i.book_grade_id
     WHERE (
         t.`type` = 'comic'
         OR 
         t.`type` = 'magazine'
         OR 
         t.`type` = 'card'
+        OR
+        t.`type` = 'book'
     )
     $and
     SQL
