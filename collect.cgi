@@ -102,17 +102,16 @@ sub collectionInterface {
         $row{TITLE_ID} = $title_id;
         # NOTE: speed this up with a single SQL query, no inner loop
         my $select = <<~"SQL";
-        SELECT id, issue_num, image_page_url 
+        SELECT id, issue_num
         FROM items WHERE title_id = ? ORDER BY issue_num
         SQL
         my $sth = $dbh->prepare($select);
         $sth->execute($title_id);
         my @issues;
-        while (my ($id, $issue_num, $image_page_url) = $sth->fetchrow_array()) {
+        while (my ($id, $issue_num) = $sth->fetchrow_array()) {
             my %row;
             $row{ID} = $id;
             $row{ISSUE_NUM} = $issue_num;
-            # $row{IMAGE_PAGE_URL} = $image_page_url;
             push(@issues, \%row);
         }
         $row{ISSUES} = \@issues;
@@ -640,8 +639,9 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     }
     # get items
     $select = <<~"SQL";
-    SELECT t.title, volume, issue_num, year, thumb_url, image_page_url, item.notes, storage, item.value, 
-    item.id AS the_id, g_comics.grade_abbrev, g_cards.grade_abbrev, g_cards.PSA_number, image.id, image.main, image.extension, image.stock, image.notes, 
+    SELECT t.title, volume, issue_num, year, thumb_url, item.notes, storage, item.value, 
+    item.id AS the_id, g_comics.grade_abbrev, g_cards.grade_abbrev, g_cards.PSA_number, 
+    image.id, image.main, image.extension, image.stock, image.notes, 
     (SELECT COUNT(*) FROM images WHERE item_id = the_id)
     FROM items AS item
     LEFT JOIN images AS image
@@ -662,7 +662,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     $sth->execute(@bind_vars);
     my $count = 0; my $dollar_total = 0.00;
     my @comics; my @numbers;
-    while (my ($title, $volume, $issue_num, $year, $thumb_url, $image_page_url, $notes, $storage, $value, $id, $grade_abbrev, $PSA_grade_abbrev, $PSA_number, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
+    while (my ($title, $volume, $issue_num, $year, $thumb_url, $notes, $storage, $value, $id, $grade_abbrev, $PSA_grade_abbrev, $PSA_number, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
         $count++;
         my %row;
         $row{STOCK} = $stock;
@@ -676,12 +676,6 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
         $row{PSA_GRADE_ABBREV} = $PSA_grade_abbrev;
         $row{PSA_NUMBER} = $PSA_number;
         $row{NOTES} = $notes || $image_notes;
-        # NOTE: these are deprecated and will be removed soon
-        # $row{IMAGE_PAGE_URL} = $image_page_url;
-        # override database value if new filesystem
-        # method is being used
-        #my $localcover = "$ENV{DOCUMENT_ROOT}/images/${id}.jpg";
-        $row{OFFSITE} = 1;
         my $localcover = '';
         if ( $image_id ) {
             $localcover = "$ENV{DOCUMENT_ROOT}/images/${image_id}.${image_extension}";
@@ -694,7 +688,6 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
         } 
         if ( -e $localcover ) {
             $thumb_url = "/images/${image_id}.${image_extension}";
-            $row{OFFSITE} = 0;
         }
         if ( $image_count > 1 ) {
             $row{IMAGE_COUNT} = $image_count;
