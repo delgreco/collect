@@ -5,6 +5,8 @@ package Collect;
 no warnings 'experimental::signatures';
 use feature 'signatures';
 
+use HTML::Template;
+
 =head1 Collect.pm
 
 Some functionality to be shared by the CGI program and the command line 'assess' program.

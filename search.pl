@@ -54,25 +54,20 @@ my $dbh = DBI->connect(
     }
 ) || die "Connect failed: $DBI::errstr\n"; 
 
-my $limit = 1; my $id = 0; my $title_id = 0;
+my $limit = 1; my $id = 0;
 my $verbose;
 GetOptions(
     "limit=i" => \$limit,       # --limit=[limit]
     "id=i"    => \$id,          # --id=[id]
-    "title_id=i" => \$title_id, # --id=[id]
     "verbose" => \$verbose      # flag, -verbose
 ) or die("Error in command line arguments\n");
+
+die "ERROR: --id required.\n" if ! $id;
 
 my $and = ''; my @bind_vars;
 if ( $id ) {
     $and = 'AND i.id = ?';
     push(@bind_vars, $id);
-}
-
-my $and_title_id = '';
-if ( $title_id ) {
-    $and_title_id = 'AND t.id = ?';
-    push(@bind_vars, $title_id);
 }
 
 my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
@@ -91,113 +86,50 @@ LEFT JOIN grades_comics g_comics
 ON i.grade_id = g_comics.id
 LEFT JOIN grades_cards AS g_cards
 ON i.PSA_grade_id = g_cards.id
-WHERE (
-    t.`type` = 'comic'
-    OR 
-    t.`type` = 'magazine'
-    OR 
-    t.`type` = 'card'
-)
-$and
-$and_new
-$and_title_id
-ORDER BY value_datetime
+WHERE i.id = ?
 SQL
 my $sth = $dbh->prepare($select);
 $sth->execute(@bind_vars);
-while (my $i = $sth->fetchrow_hashref()) {
-    if ( $type && $i->{type} ne $type ) {
-        print STDOUT "Skipping as not type '$type'.\n" if $id || $verbose;
-        next;
-    }
-    $i->{volume} = 'unspecified' unless $i->{volume};
-    $i->{grade} = '' unless $i->{grade};
-    $i->{grade_number} = '' unless $i->{grade_number};
-    $i->{notes} = 'none' unless $i->{notes};
-    $i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
-    $i->{existing_value} = 0 unless $i->{existing_value};
-    if ( 
-        ( $i->{type} eq 'comic' || $i->{type} eq 'magazine' )
-        &&
-        ! $i->{grade} 
-    ) {
-        if ( $id || $verbose ) {
-            # only explain why skipping if processing a single item
-            print STDOUT "Item: $i->{title} Volume: $i->{volume}, Issue $i->{issue_num}\n";
-            print STDOUT "\t - SORRY: cannot assess item without a grade.\n";
-        }
-        next;
-    }
-    $count++;
-    last if $count > $limit;
-    my ($sys_prompt, $user_prompt) = Collect::getPrompt($i, 'estimate');
-    print "User Prompt: $user_prompt\n" if $verbose;
-    my $response;
-    $response = $api->chat(
-        model => "gpt-4-turbo",
-        messages => [
-            { role => "system", content => $sys_prompt },
-            { role => "user", content => $user_prompt }
-        ],
-        max_tokens => 10,
-        temperature => 0.0
-    );
-    print Dumper($response) if $verbose;
-    my $issue_or_card = 'Issue';
-    if ( $i->{type} eq 'card' ) {
-        $issue_or_card = 'Card';
-    }
-    my $grade_number_str = '';
-    $grade_number_str = "($i->{grade_number})" if $i->{grade_number};
-    print "$i->{title}, Volume: $i->{volume}, $issue_or_card $i->{issue_num} ($i->{year}) $i->{grade} $grade_number_str\n";
-    my $value = $response->{choices}[0]{message}{content};
-    # compute % change
-    my $sign = ''; my $diff = 0; my $perc_diff = 0; my $color = 'white';
-    if ( $i->{existing_value} && $i->{existing_value} > 0 && $value > $i->{existing_value} ) {
-        $sign = '+';
-        $diff = $value - $i->{existing_value};
-        $perc_diff = $diff / $i->{existing_value} * 100;
-        $color = 'bright_green';
-    }
-    elsif ( $i->{existing_value} && $i->{existing_value} > 0 && $value < $i->{existing_value} ) {
-        $sign = '-';
-        $diff = $i->{existing_value} - $value;
-        $perc_diff = $diff / $i->{existing_value} * 100;
-        $color = 'red';
-    }
-    else {
-        # no change
-    }
-    my $value_str = color("bright_green") . "\$$value" . color("reset");
-    $diff = sprintf("%.2f", $diff);
-    my $diff_str = color("$color") . "${sign}\$${diff}" . color("reset");
-    $perc_diff = POSIX::round($perc_diff);
-    my $perc_diff_str = color("$color") . "${sign}\%${perc_diff}" . color("reset");
-    print "\tID: $i->{item_id}, Notes: $i->{notes}\n";
-    print "\tEstimate: $value_str, Previous ($i->{existing_value_datetime}): \$$i->{existing_value}, $diff_str ($perc_diff_str) change\n";
-    my $sql = <<~"SQL";
-    UPDATE items SET value = ?, value_datetime = NOW()
-    WHERE id = ?
-    SQL
-    my $rows_updated = $dbh->do(qq{$sql}, undef, $value, $i->{item_id});
-    if ( $rows_updated != 1 ) {
-        print STDERR "ERROR: $rows_updated rows updated.\n";
-    }
-    $batch_total_now += $value;
-    $batch_total_previous += $i->{existing_value} if defined $i->{existing_value};
-}
+my $i = $sth->fetchrow_hashref();
 
-if ( $limit > 1 ) {
-    my $batch_diff        = $batch_total_now - $batch_total_previous;
-    my $batch_sign        = $batch_diff > 0 ? '+' : $batch_diff < 0 ? '-' : '';
-    my $batch_color       = $batch_diff > 0 ? 'bright_green' : $batch_diff < 0 ? 'red' : 'white';
-    my $batch_diff_abs    = sprintf("%.2f", abs($batch_diff));
-    my $batch_perc_diff   = $batch_total_previous > 0
-                        ? sprintf("%.0f", abs($batch_diff) / $batch_total_previous * 100)
-                        : 0;
-    my $batch_diff_str        = color($batch_color) . "${batch_sign}\$${batch_diff_abs}" . color("reset");
-    my $batch_perc_diff_str   = color($batch_color) . "${batch_sign}\%${batch_perc_diff}" . color("reset");
-    say "\nTotal Estimate (batch): $batch_diff_str ($batch_perc_diff_str) change";
+# if ( $type && $i->{type} ne $type ) {
+#     print STDOUT "Skipping as not type '$type'.\n" if $id || $verbose;
+#     next;
+# }
+
+$i->{volume} = 'unspecified' unless $i->{volume};
+$i->{grade} = '' unless $i->{grade};
+$i->{grade_number} = '' unless $i->{grade_number};
+$i->{notes} = 'none' unless $i->{notes};
+$i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
+$i->{existing_value} = 0 unless $i->{existing_value};
+
+my ($sys_prompt, $user_prompt) = Collect::getPrompt($i, 'listings');
+print "User Prompt: $user_prompt\n" if $verbose;
+
+my $response = $api->chat(
+    model => "gpt-4-turbo",
+    messages => [
+        { role => "system", content => $sys_prompt },
+        { role => "user", content => $user_prompt }
+    ],
+    max_tokens => 800,
+    temperature => 0.0,
+    tools => [
+        {
+            "type" => "web",
+            "web" => {
+                "search" => {}
+            },
+        },
+    ],
+);
+print Dumper($response) if $verbose;
+
+my $listings_ref = decode_json($response->{choices}[0]{message}{content});
+
+foreach my $url ( sort keys %$listings_ref ) {
+    print "URL: $url\n";
 }
 
 =head1 AUTHOR
