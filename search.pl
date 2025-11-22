@@ -31,23 +31,17 @@ Dotenv->load;
 # our own module
 use Collect;
 
-=head1 assess
+=head1 search
 
-Use AI to assess value of collectible items in a given condition, starting with comic books and magazines.
+Use AI to search for current listings of collectibles for sale, at or below a given price point for condition.
 
 =cut
 
 =head2 main
 
-Get credentials, connect to the database, and run the assessment.
+Get credentials, connect to the database, and run the search for the given item id.
 
-By default, the program will grab just one record and attempt to assess, one that has either never been assessed, or the least recently assessed if all have been assessed before.
-
-    ./assess.pl
-
-However, if C<--limit=[limit]> is provided, it will assess that number of collectibles from the database.
-
-Alternately, if C<--id=id> is provided, only the record from C<items> with that id will be assessed.
+    ./search.pl --id=[id]
 
 =cut
 
@@ -60,18 +54,15 @@ my $dbh = DBI->connect(
     }
 ) || die "Connect failed: $DBI::errstr\n"; 
 
-my $limit = 1; my $id = 0; my $title_id = 0; my $type = '';
-my $verbose; my $new;
+my $limit = 1; my $id = 0; my $title_id = 0;
+my $verbose;
 GetOptions(
     "limit=i" => \$limit,       # --limit=[limit]
     "id=i"    => \$id,          # --id=[id]
-    "title_id=i" => \$title_id, # --title_id=[title_id]
-    "type=s"  => \$type,        # --type=[type]
-    "new"     => \$new,         # flag, -new (only process unassessed items)
+    "title_id=i" => \$title_id, # --id=[id]
     "verbose" => \$verbose      # flag, -verbose
 ) or die("Error in command line arguments\n");
 
-# only the one record, if given
 my $and = ''; my @bind_vars;
 if ( $id ) {
     $and = 'AND i.id = ?';
@@ -84,16 +75,9 @@ if ( $title_id ) {
     push(@bind_vars, $title_id);
 }
 
-my $and_new = '';
-if ( $new ) {
-    $and_new = 'AND ( i.value = 0.00 OR i.value IS NULL )';
-}
-
 my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
 
 my $count = 0;
-my $batch_total_now     = 0;
-my $batch_total_previous = 0;
 
 my $select = <<~"SQL";
 SELECT i.id AS item_id, t.title AS title, i.volume AS volume, i.issue_num AS issue_num, 
