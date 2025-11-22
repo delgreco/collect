@@ -25,8 +25,6 @@ use Term::ANSIColor;
 use JSON;
 use Dotenv;
 use Getopt::Long;
-use HTML::Template;
-# use OpenAI::API;
 
 Dotenv->load;
 
@@ -64,7 +62,7 @@ my $dbh = DBI->connect(
 
 my $limit = 1; my $id = 0; my $title_id = 0; my $type = '';
 my $verbose; my $new;
-GetOptions (
+GetOptions(
     "limit=i" => \$limit,       # --limit=[limit]
     "id=i"    => \$id,          # --id=[id]
     "title_id=i" => \$title_id, # --id=[id]
@@ -148,10 +146,7 @@ while (my $i = $sth->fetchrow_hashref()) {
     }
     $count++;
     last if $count > $limit;
-    # my $sys_prompt = _sysPrompt($i->{type});
-    # my $user_prompt = _userPrompt($i);
-    my $sys_prompt = Collect::sysPrompt($i->{type});
-    my $user_prompt = Collect::userPrompt($i);
+    my ($sys_prompt, $user_prompt) = Collect::getPrompt($i, 'estimate');
     print "User Prompt: $user_prompt\n" if $verbose;
     my $response;
     $response = $api->chat(

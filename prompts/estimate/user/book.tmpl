@@ -1,9 +1,6 @@
 Estimate the fair market value of the following book based on recent sales, market trends, and industry standards:
 
-Book: <TMPL_VAR TITLE>
-<TMPL_IF VOLUME>Volume: <TMPL_VAR VOLUME></TMPL_IF>
-Year: <TMPL_VAR YEAR>
-Grade: <TMPL_VAR GRADE> <TMPL_VAR GRADE_NUMBER>
+<TMPL_INCLUDE NAME="prompts/book.tmpl">
 
 Consider that the book is not professional graded.
 

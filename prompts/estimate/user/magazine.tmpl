@@ -1,9 +1,6 @@
 Estimate the fair market value of the following magazine based on recent sales, market trends, and industry standards:
-Magazine: <TMPL_VAR TITLE>
-<TMPL_IF VOLUME>Volume: <TMPL_VAR VOLUME></TMPL_IF>
-Issue #: <TMPL_VAR ISSUE_NUM>
-Year: <TMPL_VAR YEAR>
-Grade: <TMPL_VAR GRADE> <TMPL_VAR GRADE_NUMBER>
+
+<TMPL_INCLUDE NAME="prompts/magazine.tmpl">
 
 Consider that the magazine is not professional graded (or "slabbed") and is a raw collectible.
 

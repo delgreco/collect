@@ -51,7 +51,7 @@ use FatalsToEmail qw(
 
 Web app to archive collectibles, originally comic books.
 
-NOTE: no web authentication or authorization is built into this code, therefore it is best to run behind something like Apache Basic Authentication.  This software is not really intended for distribution.
+NOTE: no web authentication or authorization is built into this code, therefore it is best to run behind something like Apache Basic Authentication.
 
 =cut
 
@@ -459,8 +459,9 @@ sub estimateValue {
         #     }
         #     next;
         # }
-        my $sys_prompt = Collect::sysPrompt($i->{type});
-        my $user_prompt = Collect::userPrompt($i);
+        # my $sys_prompt = Collect::sysPrompt($i->{type});
+        # my $user_prompt = Collect::userPrompt($i);
+        my ($sys_prompt, $user_prompt) = Collect::getPrompt($i, 'estimate');
         my $response;
         $response = $api->chat(
             model => "gpt-4-turbo",
@@ -895,6 +896,59 @@ sub saveItem {
     my $ungraded = 1;
     $ungraded = 0 if $grade_id;
     editItem( $id, $cgi->param('title_id'), $message );
+}
+
+=head2 searchListings
+
+Given an item id, render a page with links to listings at or below the estimated value for the item. 
+
+=cut
+
+sub searchListings {
+    my $id = $cgi->param('id');
+    my @bind_vars = ( $id );
+    my $select = <<~"SQL";
+    SELECT i.year AS year, g_comics.grade AS grade, g_comics.cgc_number AS grade_number, i.value AS existing_value, 
+    t.`type` AS `type`, i.value_datetime AS existing_value_datetime, i.notes AS notes,
+    g_cards.PSA_number AS PSA_number, g_cards.grade AS PSA_grade, g_cards.grade_abbrev AS PSA_grade_abbrev,
+    g_books.grade
+    FROM items AS i
+    LEFT JOIN titles AS t
+    ON i.title_id = t.id
+    LEFT JOIN grades_comics AS g_comics
+    ON i.grade_id = g_comics.id
+    LEFT JOIN grades_cards AS g_cards
+    ON i.PSA_grade_id = g_cards.id
+    LEFT JOIN grades_books AS g_books
+    ON g_books.id = i.book_grade_id
+    WHERE id = ?
+    SQL
+    my $sth = $dbh->prepare($select);
+    $sth->execute(@bind_vars);
+    while (my $i = $sth->fetchrow_hashref()) {
+        $i->{volume} = 'unspecified' unless $i->{volume};
+        $i->{grade} = '' unless $i->{grade};
+        $i->{grade_number} = '' unless $i->{grade_number};
+        $i->{notes} = 'none' unless $i->{notes};
+        $i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
+        $i->{existing_value} = 0 unless $i->{existing_value};
+        # sytem prompt only needs the item type
+        # my $sys_prompt = Collect::sysPrompt($i->{type});
+        # # pass the whole item for the user prompt
+        # my $user_prompt = Collect::userPrompt($i);
+        my ($sys_prompt, $user_prompt) = Collect::getPrompt($i, 'listings');
+        my $response;
+        $response = $api->chat(
+            model => "gpt-4-turbo",
+            messages => [
+                { role => "system", content => $sys_prompt },
+                { role => "user", content => $user_prompt }
+            ],
+            max_tokens => 100,
+            temperature => 0.0
+        );
+    }
+    #editItem( $id, '', "New estimate fetched.  \$${sign}${diff} ${sign}${perc_diff}\% change." );
 }
 
 =head1 INTERNAL SUBROUTINES
