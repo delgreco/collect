@@ -189,8 +189,8 @@ while (my $i = $sth->fetchrow_hashref()) {
     my $diff_str = color("$color") . "${sign}\$${diff}" . color("reset");
     $perc_diff = POSIX::round($perc_diff);
     my $perc_diff_str = color("$color") . "${sign}\%${perc_diff}" . color("reset");
-    print "\tID: $i->{item_id}, Notes: $i->{notes}\n";
-    print "\tEstimate: $value_str, Previous ($i->{existing_value_datetime}): \$$i->{existing_value}, $diff_str ($perc_diff_str) change\n";
+    print "   ID: $i->{item_id}, Notes: $i->{notes}\n";
+    print "   Estimate: $value_str, Previous ($i->{existing_value_datetime}): \$$i->{existing_value}, $diff_str ($perc_diff_str) change\n";
     my $sql = <<~"SQL";
     UPDATE items SET value = ?, value_datetime = NOW()
     WHERE id = ?
