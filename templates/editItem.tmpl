@@ -4,7 +4,6 @@
 
 <div class="grid_item">
 
-    <!-- <div style="float: left; width: 50%;"> -->
     <div>
         
         <h2 style="display: inline; margin-right: 100px;"><TMPL_IF ID>Edit<TMPL_ELSE>Add</TMPL_IF> <TMPL_VAR TYPE> <TMPL_IF ID>(Item #<TMPL_VAR ID>)</TMPL_IF></h2>
@@ -129,6 +128,26 @@
     </div>
 
 </div>
+
+<button onClick="location='?action=editItem&id=<TMPL_VAR ID>&shop=1';">Shop</button>
+
+<TMPL_IF SHOP>
+    <hr>
+    <TMPL_IF EBAY_ITEMS>
+        <div class="grid_item">
+            <TMPL_LOOP EBAY_ITEMS>
+                <div style="text-align: center;">
+                    <a target="_blank" href="<TMPL_VAR URL>">
+                    <img src="<TMPL_VAR IMAGE_URL>"><br>
+                    $<TMPL_VAR PRICE>
+                    </a>
+                </div>
+            </TMPL_LOOP>
+        </div>
+    <TMPL_ELSE>
+        No results from Ebay.
+    </TMPL_IF>
+</TMPL_IF>
 
 <!-- <div style="clear: both;"></div> -->
 

@@ -9,6 +9,7 @@ use 5.026;
 
 # this is needed until we can
 # use 5.036 when it is enabled by default
+no warnings 'experimental::signatures';
 use feature 'signatures';
 
 use lib qw(

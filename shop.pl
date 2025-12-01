@@ -9,6 +9,7 @@ use 5.026;
 
 # this is needed until we can
 # use 5.036 when it is enabled by default
+no warnings 'experimental::signatures';
 use feature 'signatures';
 
 use lib qw(
@@ -68,9 +69,8 @@ GetOptions(
     'help'    => \$help,        # flag, --help
 ) or die("Error in command line arguments\n");
 
-die "ERROR: --id required.\n" if ! $id;
-
 if ( $help ) {
+    help();
 }
 
 if ( ! $id ) {
@@ -174,8 +174,11 @@ Provide CLI help.
 =cut
 
 sub help {
+    print "Usage: $0 --id <id>\n";
+    print "  or...\n";
     print "Usage: $0 --search <title #issue year> --price <max_price> [--min-grade <grade>]\n";
     print "  --id <id>                    : The id of the item to be shopped for.\n";
+    print "  or...\n";
     print "  --search <title #issue year> : Required title of comic book to search for.\n";
     print "  --price <max_price>          : Required maximum price for the comic book.\n";
     print "  --min-grade <grade>          : Optional minimum grade an item must have (e.g., 9.0).\n";

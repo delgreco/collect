@@ -120,7 +120,7 @@ sub searchEbay {
     my $ua = LWP::UserAgent->new;
     $ua->agent("EbaySearchScript/1.0");
 
-    print "Requesting OAuth2 access token from eBay...\n";
+    # print "Requesting OAuth2 access token from eBay...\n";
 
     my $token_req = HTTP::Request->new(POST => $token_url);
     $token_req->header(
@@ -143,9 +143,9 @@ sub searchEbay {
         die "ERROR: 'access_token' not found in eBay's OAuth2 response.\n";
     }
 
-    print "Successfully obtained access token.\n\n";
+    # print "Successfully obtained access token.\n\n";
 
-    print "Querying eBay Buy API for: \"$search\"...\n\n";
+    # print "Querying eBay Buy API for: \"$search\"...\n\n";
 
     my $request_uri = URI->new($buy_api_url);
     $request_uri->query_form(
@@ -195,7 +195,7 @@ sub searchEbay {
             $filter_message .= ", title starts with '" . $first_word_of_search_title . "'";
         }
         $filter_message .= ", has image, no reprints/facsimiles/detached/lot):\n\n";
-        print $filter_message;
+        # print $filter_message;
 
         foreach my $item (@$items) {
             my $title = $item->{title} || 'N/A';
@@ -204,7 +204,7 @@ sub searchEbay {
             my $publication_year = undef; # Use undef for no year found
 
             # skip if no image
-            if ( !($item->{image} && $item->{image}{imageUrl}) ) {
+            if ( ! ($item->{image} && $item->{image}{imageUrl}) ) {
                 next;
             }
 
@@ -218,7 +218,8 @@ sub searchEbay {
             my $issue_number = undef;
             if ( $title =~ /#\s*(\d+)/ ) { # Prioritize # N
                 $issue_number = $1;
-            } elsif ( $title =~ /\b(\d+)\b/ ) { # Then plain whole numbers
+            } 
+            elsif ( $title =~ /\b(\d+)\b/ ) { # Then plain whole numbers
                 my $potential_issue = $1;
                 # Check if this plain number is not likely a year or already a grade
                 my $is_year = (defined $publication_year && $potential_issue eq $publication_year);
@@ -226,7 +227,7 @@ sub searchEbay {
                 $item->{grade} = '' unless $item->{grade};
                 my $is_grade = ($item->{grade} ne 'N/A' && $potential_issue eq $item->{grade});
 
-                if (!$is_year && !$is_grade) {
+                if ( ! $is_year && ! $is_grade ) {
                     $issue_number = $potential_issue;
                 }
             }
@@ -237,7 +238,7 @@ sub searchEbay {
                 $grade = $1;
             }
 
-            if ( !defined $grade || $grade eq 'N/A' ) {
+            if ( ! defined $grade || $grade eq 'N/A' ) {
                 my $grade_mappings = _load_grade_mappings();
                 foreach my $mapping (@$grade_mappings) {
                     if ( ($item->{condition} && $item->{condition} =~ $mapping->{regex}) || ($title =~ $mapping->{regex}) ) {
@@ -248,9 +249,9 @@ sub searchEbay {
             }
             $item->{grade} = (defined $grade) ? $grade : 'N/A';
 
-            # Skip if min_grade is defined and item's grade is less than min_grade
+            # skip if min_grade is defined and item's grade is less than min_grade
             if ( defined $min_grade ) {
-                # Only compare if the item actually has a numeric grade
+                # only compare if the item actually has a numeric grade
                 if ( $item->{grade} ne 'N/A' && $item->{grade} < $min_grade ) {
                     next;
                 }
@@ -282,7 +283,7 @@ sub searchEbay {
                 next;
             }
 
-            if ($price_value ne 'N/A' && $price_value <= $max_price) {
+            if ( $price_value ne 'N/A' && $price_value <= $max_price ) {
                 push @filtered_items, $item;
             }
         }

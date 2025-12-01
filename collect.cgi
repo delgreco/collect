@@ -9,6 +9,7 @@ use 5.026;
 
 # this is needed until we can
 # use 5.036 when it is enabled by default
+no warnings 'experimental::signatures';
 use feature 'signatures';
 
 use lib qw(
@@ -17,7 +18,6 @@ use lib qw(
     local/lib/perl5/x86_64-linux-thread-multi
 );
 
-#use cPanelUserConfig; # finds modules installed by Cpanel
 use CGI;
 use CGI::Carp('fatalsToBrowser');
 use Data::Dumper;
@@ -26,9 +26,9 @@ use FindBin;
 use HTML::Template;
 use JSON;
 use Dotenv;
-#use OpenAI::API;
 
 Dotenv->load;
+
 my $api = OpenAI::API->new( api_key => $ENV{OPENAI_API_KEY} );
 
 use Collect;
@@ -183,7 +183,7 @@ sub deleteImage {
     SQL
     my $issue_ref = $dbh->selectrow_hashref($sql, undef, $item_id);
     # image
-    my $sql = <<~"SQL";
+    $sql = <<~"SQL";
     SELECT * FROM images WHERE id = ?
     SQL
     my $image_ref = $dbh->selectrow_hashref($sql, undef, $id);
@@ -235,7 +235,7 @@ sub deleteIssue {
     SELECT id FROM images 
     WHERE item_id = ?
     SQL
-    my $sth = $dbh->prepare($select);
+    $sth = $dbh->prepare($select);
     $sth->execute($id);
     while (my ($image_id, $extension) = $sth->fetchrow_array()) {
         my $filepath = "$ENV{DOCUMENT_ROOT}/images/${image_id}.${extension}";
@@ -296,15 +296,19 @@ Screen on which to view/edit an item record.
 
 =cut
 
-sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
+sub editItem( $id = 0, $title_id = 0, $message = '', $shop = 0 ) {
     $id = $cgi->param('id') if ! $id;
     $title_id = $cgi->param('title_id') if ! $title_id;
+    $shop = $cgi->param('shop') if ! $shop;
     my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
     # get item
     my $sql = <<~"SQL";
     SELECT * FROM items WHERE id = ?
     SQL
     my $item_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    my $comic_grade_ref = _getComicGrade( $item_ref->{grade_id} );
+    my $d = Dumper($item_ref);
+    print STDERR "$d\n";
     # get category
     $sql = <<~"SQL";
     SELECT * FROM titles WHERE id = ?
@@ -391,6 +395,57 @@ sub editItem ( $id = 0, $title_id = 0, $message = '' ) {
     }
     $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
     $t->param(MESSAGE => $message);
+    if ( $shop ) {
+        $t->param(SHOP => 1);
+        my $filtered_items = Collect::searchEbay(
+            "$cat_ref->{title} #$item_ref->{issue_num} $item_ref->{year}", 
+            $item_ref->{value}, 
+            $comic_grade_ref->{cgc_number}
+        );
+
+        print STDERR "$cat_ref->{title} #$item_ref->{issue_num} $item_ref->{year}\n";
+        print STDERR "$item_ref->{value}\n"; 
+        print STDERR "$comic_grade_ref->{cgc_number}\n";
+
+        if ( @$filtered_items ) {
+            my @items;
+            foreach my $item ( @$filtered_items ) {
+                my %row;
+                # my $title = $item->{title} || 'N/A';
+                # my $price_value = $item->{price}{value} || 'N/A';
+                # my $price_currency = $item->{price}{currency} || '';
+                # my $item_web_url = $item->{itemWebUrl} || 'N/A';
+                # my $condition = $item->{condition} || 'N/A';
+                # my $publication_year = $item->{publicationYear} || 'N/A';
+                # my $issue_number = $item->{'issueNumber'} || 'N/A';
+                # my $grade = $item->{grade} || 'N/A';
+                # my $seller_username = $item->{seller}{username} || 'N/A';
+                # my $shipping_cost_value = ($item->{shippingOptions} && $item->{shippingOptions}[0] && $item->{shippingOptions}[0]{shippingCost}{value}) ? $item->{shippingOptions}[0]{shippingCost}{value} : 'N/A';
+                # my $shipping_cost_currency = ($item->{shippingOptions} && $item->{shippingOptions}[0] && $item->{shippingOptions}[0]{shippingCost}{currency}) ? $item->{shippingOptions}[0]{shippingCost}{currency} : '';
+                # my $location_country = $item->{itemLocation}{country} || 'N/A';
+                # my $top_rated_seller = (defined $item->{topRatedBuyingExperience} && $item->{topRatedBuyingExperience}) ? 'Yes' : 'No';
+                # my $category_name = $item->{categoryPath} || 'N/A';
+                # print "Title: $title\n";
+                # print "Condition: $condition\n";
+                # print "Year: $publication_year\n";
+                # print "Issue Number: $issue_number\n";
+                # print "Grade: $grade\n";
+                # print "Price: $price_value $price_currency\n";
+                # print "Shipping: $shipping_cost_value $shipping_cost_currency\n";
+                # print "Seller: $seller_username (Top Rated: $top_rated_seller)\n";
+                # print "Location: $location_country\n";
+                # print "Category: $category_name\n";
+                # print "URL: $item_web_url\n";
+                # print "Image URL: " . (($item->{image} && $item->{image}{imageUrl}) ? $item->{image}{imageUrl} : 'N/A') . "\n";
+                # print "----------------------------------------\n";
+                $row{URL} = $item->{itemWebUrl};
+                $row{IMAGE_URL} = $item->{image}{imageUrl};
+                $row{PRICE} = $item->{price}{value};
+                push(@items, \%row);
+            }
+            $t->param(EBAY_ITEMS => \@items);
+        }
+    } # end of shopping feature
     print "Content-type: text/html\n\n";
     print $t->output;
 }
@@ -754,7 +809,7 @@ sub saveCategory {
         SQL
         my $rows_updated = $dbh->do(qq{$sql}, undef, $category, $type, $show_missing, $id);
         if ( $rows_updated != 1 ) {
-            $IX::Template::message = qq |ERROR: $rows_updated rows updated.|;
+            $message = qq |ERROR: $rows_updated rows updated.|;
         }
         mainInterface( "$category updated.", $id );
     }
@@ -898,59 +953,6 @@ sub saveItem {
     editItem( $id, $cgi->param('title_id'), $message );
 }
 
-=head2 searchListings
-
-Given an item id, render a page with links to listings at or below the estimated value for the item. 
-
-=cut
-
-sub searchListings {
-    my $id = $cgi->param('id');
-    my @bind_vars = ( $id );
-    my $select = <<~"SQL";
-    SELECT i.year AS year, g_comics.grade AS grade, g_comics.cgc_number AS grade_number, i.value AS existing_value, 
-    t.`type` AS `type`, i.value_datetime AS existing_value_datetime, i.notes AS notes,
-    g_cards.PSA_number AS PSA_number, g_cards.grade AS PSA_grade, g_cards.grade_abbrev AS PSA_grade_abbrev,
-    g_books.grade
-    FROM items AS i
-    LEFT JOIN titles AS t
-    ON i.title_id = t.id
-    LEFT JOIN grades_comics AS g_comics
-    ON i.grade_id = g_comics.id
-    LEFT JOIN grades_cards AS g_cards
-    ON i.PSA_grade_id = g_cards.id
-    LEFT JOIN grades_books AS g_books
-    ON g_books.id = i.book_grade_id
-    WHERE id = ?
-    SQL
-    my $sth = $dbh->prepare($select);
-    $sth->execute(@bind_vars);
-    while (my $i = $sth->fetchrow_hashref()) {
-        $i->{volume} = 'unspecified' unless $i->{volume};
-        $i->{grade} = '' unless $i->{grade};
-        $i->{grade_number} = '' unless $i->{grade_number};
-        $i->{notes} = 'none' unless $i->{notes};
-        $i->{existing_value_datetime} = '' unless $i->{existing_value_datetime};
-        $i->{existing_value} = 0 unless $i->{existing_value};
-        # sytem prompt only needs the item type
-        # my $sys_prompt = Collect::sysPrompt($i->{type});
-        # # pass the whole item for the user prompt
-        # my $user_prompt = Collect::userPrompt($i);
-        my ($sys_prompt, $user_prompt) = Collect::getPrompt($i, 'listings');
-        my $response;
-        $response = $api->chat(
-            model => "gpt-4-turbo",
-            messages => [
-                { role => "system", content => $sys_prompt },
-                { role => "user", content => $user_prompt }
-            ],
-            max_tokens => 100,
-            temperature => 0.0
-        );
-    }
-    #editItem( $id, '', "New estimate fetched.  \$${sign}${diff} ${sign}${perc_diff}\% change." );
-}
-
 =head1 INTERNAL SUBROUTINES
 
 =head2 _collapse_series
@@ -1064,6 +1066,23 @@ sub _getComicGradesDropdown {
     }
     $t->param(COMIC_GRADES => \@grades);
     return $t;
+}
+
+=head2 _getComicGrade()
+
+Given a grade id, return a reference to data for that comic grade.
+
+=cut
+
+sub _getComicGrade {
+    my $id = $_[0];
+    my $sql = <<~"SQL";
+    SELECT * FROM grades_comics
+    WHERE id  = ?
+    SQL
+    my $sth = $dbh->prepare($sql);
+    my $grade_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    return $grade_ref;
 }
 
 =head2 _getLeastRecentYear()
