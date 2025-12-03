@@ -134,7 +134,7 @@ if ( @$filtered_items ) {
     
     print "\nDisplayed " . scalar(@$filtered_items) . " listings matching your criteria:\n";
     print "----------------------------------------\n";
-    foreach my $item (@$filtered_items) {
+    foreach my $item ( @$filtered_items ) {
         my $title = $item->{title} || 'N/A';
         my $price_value = $item->{price}{value} || 'N/A';
         my $price_currency = $item->{price}{currency} || '';
