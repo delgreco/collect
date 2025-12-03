@@ -27,10 +27,10 @@
         </TMPL_LOOP>
         </select> <TMPL_IF TITLE_ID><a href="<TMPL_VAR SCRIPT_NAME>?action=editCategory&id=<TMPL_VAR TITLE_ID>">edit</a></TMPL_IF> <br><br>
 
-        Volume: <input type="text" size="4" name="volume" value="<TMPL_VAR VOLUME>"> &nbsp;&nbsp;&nbsp; Issue / Card #: <input type="text" size="12" name="issue_num" value="<TMPL_VAR ISSUE_NUM>">  &nbsp;&nbsp;&nbsp; Year: <input type="text" size="6" name="year" value="<TMPL_VAR YEAR>"> &nbsp;&nbsp;&nbsp;
+        Volume: <input type="text" size="4" name="volume" value="<TMPL_VAR VOLUME>"> &nbsp;&nbsp;&nbsp; Issue / Card #: <input type="text" size="12" name="issue_num" value="<TMPL_VAR ISSUE_NUM>">  &nbsp;&nbsp;&nbsp; Year: <input type="text" size="6" name="year" value="<TMPL_VAR YEAR>"> <br><br>
 
         <TMPL_IF COMIC_MAG_GRADING>
-            Grade: <select name="grade_id">
+            <label for="grade_id">Grade</label> <select id="grade_id" name="grade_id">
             <option value="">select grade of best copy...
             <TMPL_LOOP COMIC_GRADES>
                 <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR CGC_NUMBER> - <TMPL_VAR GRADE_ABBREV> - <TMPL_VAR GRADE>
