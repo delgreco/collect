@@ -20,7 +20,6 @@ use lib qw(
 
 use Data::Dumper;
 use DBI;
-use FindBin;
 use POSIX;
 use Term::ANSIColor;
 use JSON;

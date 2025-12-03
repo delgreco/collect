@@ -568,6 +568,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     my $search=$cgi->param('search') || '';
     my $type=$cgi->param('type');
     my $year=$cgi->param('year');
+    my $want=$cgi->param('want');
     my $t = HTML::Template->new(
         filename => 'templates/mainInterface.tmpl',
     );
@@ -586,15 +587,18 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     if ( $title_id ) {
         push(@where_conditions, 'item.title_id = ?');
         push(@bind_vars, $title_id);
-    } 
+    }
     if ( $type ) {
         push(@where_conditions, 't.type = ?');
         push(@bind_vars, $type);
-    } 
+    }
     if ( $search ) {
         push(@where_conditions, '( t.title LIKE ? OR item.notes LIKE ? )');
         push(@bind_vars, "%$search%");
         push(@bind_vars, "%$search%");
+    }
+    if ( $want ) {
+        push(@where_conditions, 'image.id IS NULL');
     }
     my $where = "WHERE" if @where_conditions; 
     my $i = 0;
@@ -642,16 +646,18 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     my $order_by = '';
     if ( $title_id ) {
         # NOTE: numerical ordering for comics, do we want this always?
-        # 	1.	Handles both NULL and ''
-        #       •	CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END
-        #       •	Moves rows with NULL or empty volume to the bottom.
-        #   2.	Ensures volume is always a number
-        #       •	COALESCE(NULLIF(volume, ''), 0)
-        #       •	Converts empty strings to NULL, then defaults NULL to 0.
-        #   3.	Sorts issue_num correctly as a number
-        #       •	CAST(issue_num AS UNSIGNED) ASC prevents lexicographic sorting.
+        #   1. Handles both NULL and ''
+        #       • CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END
+        #       • Moves rows with NULL or empty volume to the bottom.
+        #   2. Ensures volume is always a number
+        #       • COALESCE(NULLIF(volume, ''), 0)
+        #       • Converts empty strings to NULL, then defaults NULL to 0.
+        #   3. Sorts issue_num correctly as a number
+        #       • CAST(issue_num AS UNSIGNED) ASC prevents lexicographic sorting.
         # This should now sort correctly even with mixed NULL, empty, and numeric values
-        $order_by = "CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END, CAST(COALESCE(NULLIF(volume, ''), 0) AS UNSIGNED) ASC, CAST(issue_num AS UNSIGNED) ASC";
+        $order_by = "CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END, 
+        CAST(COALESCE(NULLIF(volume, ''), 0) AS UNSIGNED) ASC, 
+        CAST(issue_num AS UNSIGNED) ASC";
         $t->param(ORDER_OLDEST_ITEMS => 1);
     }
     elsif ( $order eq 'oldest_items' ) {
@@ -663,16 +669,16 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
         $order_by = 'value DESC';
         $t->param(TOTAL_COLLECTION_VALUE => _getTotalCollectionValue());
     }
-    else {
+    else { # default to most recent additions
         $t->param(ORDER_RECENT_ADDS => 1);
         $order_by = 'added DESC';
     }
     # get items
     $select = <<~"SQL";
-    SELECT t.title, volume, issue_num, year, thumb_url, item.notes, storage, item.value, 
-    item.id AS the_id, g_comics.grade_abbrev, g_cards.grade_abbrev, g_cards.PSA_number, 
-    image.id, image.main, image.extension, image.stock, image.notes, 
-    (SELECT COUNT(*) FROM images WHERE item_id = the_id)
+    SELECT t.title, volume, issue_num, year, thumb_url, item.notes, storage, 
+    item.value, item.id AS the_id, g_comics.grade_abbrev, g_cards.grade_abbrev, 
+    g_cards.PSA_number, image.id, image.main, image.extension, image.stock, 
+    image.notes, (SELECT COUNT(*) FROM images WHERE item_id = the_id)
     FROM items AS item
     LEFT JOIN images AS image
     ON image.item_id = item.id
