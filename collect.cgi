@@ -700,7 +700,10 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
         $row{ISSUE_NUM} = $issue_num;
         $row{VALUE} = $value if $value > 0;
         $dollar_total = $dollar_total + $value;
-        push(@numbers, $issue_num); # for finding missing issues below
+        # @numbers is for finding missing issues below.
+        # Items without images are want-list only
+        # so do not include those when finding missing issues.
+        push(@numbers, $issue_num) if $image_id;
         $row{YEAR} = $year;
         $row{COMIC_GRADE_ABBREV} = $grade_abbrev;
         $row{PSA_GRADE_ABBREV} = $PSA_grade_abbrev;
@@ -742,7 +745,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     $t->param(COUNT => $count);
     $t->param(DOLLAR_TOTAL => sprintf("%.2f", $dollar_total));
     my @missing;
-    if ( $title_id ) {  # only looking for missing if showing a single title
+    if ( $title_id ) {  # look for missing if showing a single title
         @missing = findMissing(@numbers);
         @missing = _collapse_series(@missing);
         $t->param(MISSING => join(", ", @missing));
