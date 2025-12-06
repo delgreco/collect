@@ -1206,7 +1206,9 @@ Return the total number of issues in the collection.
 
 sub _getTotalCollectionCount {
     my $select = <<~"SQL";
-    SELECT COUNT(*) FROM items
+    SELECT COUNT(DISTINCT items.id) AS items_with_images
+    FROM items
+    JOIN images ON images.item_id = items.id
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
