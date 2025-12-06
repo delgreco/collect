@@ -115,7 +115,7 @@ if ( $id ) {
     $min_grade = $i->{grade_number};
 }
 
-my $filtered_items = Collect::searchEbay(
+my ($filtered_items, $filter_message) = Collect::searchEbay(
     $search, 
     $price, 
     $min_grade
@@ -161,6 +161,8 @@ if ( @$filtered_items ) {
         print "Category: $category_name\n";
         print "URL: $item_web_url\n";
         print "Image URL: " . (($item->{image} && $item->{image}{imageUrl}) ? $item->{image}{imageUrl} : 'N/A') . "\n";
+        print "----------------------------------------\n";
+        print "Filter: $filter_message\n";
         print "----------------------------------------\n";
     }
 }

@@ -146,8 +146,7 @@ sub searchEbay( $search, $max_price, $min_grade = 0 ) {
         die "ERROR: 'access_token' not found in eBay's OAuth2 response.\n";
     }
 
-    # print "Querying eBay Buy API for: \"$search\"...\n\n";
-
+    # querying eBay Buy API
     my $request_uri = URI->new($buy_api_url);
     $request_uri->query_form(
         q => $search,
@@ -163,7 +162,7 @@ sub searchEbay( $search, $max_price, $min_grade = 0 ) {
         my $error_message = "API request failed: " . $response->status_line;
         my $content = $response->decoded_content;
 
-        if ($content) {
+        if ( $content ) {
             try {
                 my $error_data = JSON->new->decode($content);
                 if ($error_data->{errors} && ref $error_data->{errors} eq 'ARRAY' && $error_data->{errors}[0]->{message}) {
@@ -189,16 +188,16 @@ sub searchEbay( $search, $max_price, $min_grade = 0 ) {
     my $items = $data->{itemSummaries} || [];
     my @filtered_items;
 
+    my $filter_message = '';
     if ( $items && @$items ) {
-        my $filter_message = "Found " . scalar(@$items) . " listings for '$search' on eBay (originally showing top 200). Applying client-side filters (location='US', price <= $max_price";
+        $filter_message = "Search found " . scalar(@$items) . " listings for '$search' on eBay (originally showing top 200).\nApplying client-side filters...\n(location='US', price <= $max_price";
         if ( defined $target_year ) {
             $filter_message .= ", year = $target_year";
         }
         if ( defined $first_word_of_search_title ) {
             $filter_message .= ", title starts with '" . $first_word_of_search_title . "'";
         }
-        $filter_message .= ", has image, no reprints/facsimiles/detached/lot):\n\n";
-        # print $filter_message;
+        $filter_message .= ", has image, no reprints/facsimiles/detached/lot)\n\n";
 
         foreach my $item (@$items) {
             my $title = $item->{title} || 'N/A';
@@ -291,7 +290,7 @@ sub searchEbay( $search, $max_price, $min_grade = 0 ) {
             }
         }
     }
-    return \@filtered_items;
+    return (\@filtered_items, $filter_message);
 }
 
 

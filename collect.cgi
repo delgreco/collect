@@ -397,7 +397,7 @@ sub editItem( $id = 0, $title_id = 0, $message = '', $shop = 0 ) {
     $t->param(MESSAGE => $message);
     if ( $shop ) {
         $t->param(SHOP => 1);
-        my $filtered_items = Collect::searchEbay(
+        my ($filtered_items, $filter_message) = Collect::searchEbay(
             "$cat_ref->{title} #$item_ref->{issue_num} $item_ref->{year}", 
             $item_ref->{value}, 
             $comic_grade_ref->{cgc_number}
@@ -418,6 +418,7 @@ sub editItem( $id = 0, $title_id = 0, $message = '', $shop = 0 ) {
                 push(@items, \%row);
             }
             $t->param(EBAY_ITEMS => \@items);
+            $t->param(FILTER_MESSAGE => $filter_message);
         }
     } # end of shopping feature
     print "Content-type: text/html\n\n";
