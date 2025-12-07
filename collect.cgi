@@ -601,6 +601,9 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     if ( $want ) {
         push(@where_conditions, 'image.id IS NULL');
     }
+    else {
+        push(@where_conditions, 'image.id IS NOT NULL');
+    }
     my $where = "WHERE" if @where_conditions; 
     my $i = 0;
     foreach my $where_condition ( @where_conditions ) {
@@ -645,7 +648,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
         selected_type => $type,
     );
     my $order_by = '';
-    if ( $title_id ) {
+    if ( $title_id || $want ) {
         # NOTE: numerical ordering for comics, do we want this always?
         #   1. Handles both NULL and ''
         #       • CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END
