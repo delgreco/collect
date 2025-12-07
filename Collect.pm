@@ -4,6 +4,7 @@ package Collect;
 # use 5.036 when it is enabled by default
 no warnings 'experimental::signatures';
 use feature 'signatures';
+use feature 'state';
 
 use HTML::Template;
 use OpenAI::API;
@@ -90,6 +91,8 @@ TODO
 =cut
 
 sub searchEbay( $search, $max_price, $min_grade = 0 ) {
+    state $run_count = 0;
+    $run_count++;
     my $target_year = undef;
     if ( $search =~ /\((\d{4})\)/ ) {
         $target_year = $1;
@@ -199,7 +202,7 @@ sub searchEbay( $search, $max_price, $min_grade = 0 ) {
         }
         $filter_message .= ", has image, no reprints/facsimiles/detached/lot)\n\n";
 
-        foreach my $item (@$items) {
+        foreach my $item ( @$items ) {
             my $title = $item->{title} || 'N/A';
             my $price_value = $item->{price}{value} || 'N/A';
             my $item_country = $item->{itemLocation}{country} || 'N/A';
@@ -290,7 +293,15 @@ sub searchEbay( $search, $max_price, $min_grade = 0 ) {
             }
         }
     }
-    return (\@filtered_items, $filter_message);
+    # if not enough results, up the max_price by 25% and try again
+    print STDERR "Shopping List: " . scalar @filtered_items . "\n";
+    if ( scalar @filtered_items < 10 && $run_count < 6 ) {
+        my $new_max_price = $max_price + ( $max_price * .25 ); 
+        searchEbay( $search, $new_max_price, $min_grade );
+    }
+    else {
+        return (\@filtered_items, $filter_message);
+    }
 }
 
 

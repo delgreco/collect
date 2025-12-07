@@ -407,7 +407,7 @@ sub editItem( $id = 0, $title_id = 0, $message = '', $shop = 0 ) {
         print STDERR "$item_ref->{value}\n"; 
         print STDERR "$comic_grade_ref->{cgc_number}\n";
 
-        if ( @$filtered_items ) {
+        if ( scalar @$filtered_items ) {
             my @items;
             foreach my $item ( @$filtered_items ) {
                 my %row;

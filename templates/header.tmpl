@@ -127,9 +127,7 @@ function editItem(id) {
 
     <a href="<TMPL_VAR SCRIPT_NAME>?action=collectionInterface">text index</a> 
     - <a href="?action=mainInterface">gallery latest</a>
-    - <a href="?action=mainInterface&want=1">want list</a>
-    - <button onClick="location='?action=editCategory&title_id=<TMPL_VAR TITLE_ID>';">add category</button>
-    - <button onClick="location='?action=editItem&title_id=<TMPL_VAR TITLE_ID>';">add item</button><br>
+    - <a href="?action=mainInterface&want=1">want list</a><br><br>
 
 </div>
 
@@ -137,7 +135,7 @@ function editItem(id) {
 
     <form id="search_form" method="post" action="<TMPL_VAR SCRIPT_NAME>">
 
-    <input type="button" value="Reset" onClick="clearForm();"> &nbsp;&nbsp;
+    <input type="button" value="reset" onClick="clearForm();"> &nbsp;&nbsp;
 
     <input type="text" size="15" name="search" value="<TMPL_VAR SEARCH>" placeholder="search text"> &nbsp;
 
@@ -158,7 +156,7 @@ function editItem(id) {
     </TMPL_UNLESS>
 
     <select name="title_id">
-    <option value="">select title...
+    <option value="">select title / category...
     <TMPL_LOOP TITLES>
         <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR TITLE> (<TMPL_VAR COUNT>)
     </TMPL_LOOP>
@@ -171,8 +169,12 @@ function editItem(id) {
     </TMPL_LOOP>
     </select> &nbsp;&nbsp;
     
-    <input type="submit" value="Gallery"> &nbsp;&nbsp;
-    </form>
+    <input type="submit" value="gallery"> &nbsp;&nbsp;
+    </form> <br>
+
+
+    <button onClick="location='?action=editCategory&title_id=<TMPL_VAR TITLE_ID>';">add title / category</button>
+    - <button onClick="location='?action=editItem&title_id=<TMPL_VAR TITLE_ID>';">add item</button><br>
 
 </div>
 
