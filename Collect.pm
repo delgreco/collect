@@ -300,6 +300,10 @@ sub searchEbay( $search, $max_price, $min_grade = 0 ) {
         searchEbay( $search, $new_max_price, $min_grade );
     }
     else {
+        # numeric sort, ascending
+        @filtered_items = sort {
+            $a->{price}{value} <=> $b->{price}{value}
+        } @filtered_items;
         return (\@filtered_items, $filter_message);
     }
 }
