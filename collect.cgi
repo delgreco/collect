@@ -659,7 +659,8 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
         #   3. Sorts issue_num correctly as a number
         #       • CAST(issue_num AS UNSIGNED) ASC prevents lexicographic sorting.
         # This should now sort correctly even with mixed NULL, empty, and numeric values
-        $order_by = "CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END, 
+        $order_by = "title, 
+        CASE WHEN volume IS NULL OR volume = '' THEN 1 ELSE 0 END, 
         CAST(COALESCE(NULLIF(volume, ''), 0) AS UNSIGNED) ASC, 
         CAST(issue_num AS UNSIGNED) ASC";
         $t->param(ORDER_OLDEST_ITEMS => 1);
