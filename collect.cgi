@@ -602,7 +602,9 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
         push(@where_conditions, 'image.id IS NULL');
     }
     else {
-        push(@where_conditions, 'image.id IS NOT NULL');
+        unless ( $title_id ) {
+            push(@where_conditions, 'image.id IS NOT NULL');
+        }
     }
     my $where = "WHERE" if @where_conditions; 
     my $i = 0;
@@ -702,7 +704,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     $sth = $dbh->prepare($select);
     $sth->execute(@bind_vars);
     my $count = 0; my $dollar_total = 0.00;
-    my @comics; my @numbers;
+    my @items; my @numbers;
     while (my ($title, $volume, $issue_num, $year, $thumb_url, $notes, $storage, $value, $id, $grade_abbrev, $PSA_grade_abbrev, $PSA_number, $image_id, $main, $image_extension, $stock, $image_notes, $image_count) = $sth->fetchrow_array()) {
         $count++;
         my %row;
@@ -739,7 +741,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
         $row{THUMB_URL} = $thumb_url;
         $row{TITLE} = $title;
         $row{ID} = $id;
-        push(@comics, \%row);
+        push(@items, \%row);
     }
     if ( ! $year ) {
         $year = "any year";
@@ -767,8 +769,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     $t->param(SEARCH => $search);
     $t->param(YEAR => $year);
     $t->param(YEARS => \@years);
-    $t->param(COMICS => \@comics);
-    #$t->param(MESSAGE => $message . "\n\n$select");
+    $t->param(ITEMS => \@items);
     $t->param(MESSAGE => $message);
     my $output = $t->output;
     print "Content-type: text/html\n\n";
