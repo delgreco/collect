@@ -65,7 +65,8 @@
             <progress id="shop_progress" style="display: none;"></progress>
             <br><br>
 
-            <TMPL_IF VALUE>Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE></span> (<TMPL_VAR VALUE_DATETIME>) &nbsp;&nbsp; <button onClick="estimateValue(<TMPL_VAR ID>); return false;">Get New Estimate</button> &nbsp; <progress id="estimate_progress" style="display: none;"></progress><TMPL_ELSE><TMPL_IF HAS_GRADE><button onClick="estimateValue(<TMPL_VAR ID>); return false;">Estimate Value</button></TMPL_IF></TMPL_IF>
+            <TMPL_IF VALUE>Est. Market Value: <span style="font-weight: bold; color: #00FF66;">$<TMPL_VAR VALUE></span> (<TMPL_VAR VALUE_DATETIME>) &nbsp;&nbsp; <button onClick="estimateValue(<TMPL_VAR ID>); return false;">Get New Estimate</button> &nbsp; <TMPL_ELSE><TMPL_IF HAS_GRADE><button onClick="estimateValue(<TMPL_VAR ID>); return false;">Estimate Value</button></TMPL_IF></TMPL_IF>
+            <progress id="estimate_progress" style="display: none;"></progress>
         </TMPL_IF>
 
         <br><br>
