@@ -25,7 +25,7 @@
         <TMPL_LOOP TITLES>
             <option value="<TMPL_VAR ID>" <TMPL_VAR SELECTED>><TMPL_VAR TITLE>
         </TMPL_LOOP>
-        </select> <TMPL_IF TITLE_ID><a href="<TMPL_VAR SCRIPT_NAME>?action=editCategory&id=<TMPL_VAR TITLE_ID>">edit</a></TMPL_IF> <br><br>
+        </select> <TMPL_IF TITLE_ID><a href="<TMPL_VAR SCRIPT_NAME>?action=category&id=<TMPL_VAR TITLE_ID>">edit</a></TMPL_IF> <br><br>
 
         Volume: <input type="text" size="4" name="volume" value="<TMPL_VAR VOLUME>"> &nbsp;&nbsp;&nbsp; Issue / Card #: <input type="text" size="12" name="issue_num" value="<TMPL_VAR ISSUE_NUM>">  &nbsp;&nbsp;&nbsp; Year: <input type="text" size="6" name="year" value="<TMPL_VAR YEAR>"> <br><br>
 
@@ -61,7 +61,7 @@
         Purchased For: $<input type="text" size="12" name="purchased_for" value="<TMPL_VAR PURCHASED_FOR>"> &nbsp;&nbsp;&nbsp; Purchased On: <input type="date" name="purchased_on" value="<TMPL_VAR PURCHASED_ON>">
 
         <TMPL_IF ID>
-            &nbsp;&nbsp;&nbsp;&nbsp; <button onClick="location='?action=editItem&id=<TMPL_VAR ID>&shop=1'; $('#shop_progress').show(); return false;">Shop</button> &nbsp;
+            &nbsp;&nbsp;&nbsp;&nbsp; <button onClick="location='?action=item&id=<TMPL_VAR ID>&shop=1'; $('#shop_progress').show(); return false;">Shop</button> &nbsp;
             <progress id="shop_progress" style="display: none;"></progress>
             <br><br>
 

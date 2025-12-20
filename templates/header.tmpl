@@ -125,9 +125,9 @@ function editItem(id) {
     
     <h1>Collect<TMPL_IF TOTAL_COLLECTION_COUNT> - <TMPL_VAR TOTAL_COLLECTION_COUNT> Items</TMPL_IF></h1>
 
-    <a href="<TMPL_VAR SCRIPT_NAME>?action=collectionInterface">text index</a> 
-    - <a href="?action=mainInterface">gallery latest</a>
-    - <a href="?action=mainInterface&want=1">want list</a><br><br>
+    <a href="<TMPL_VAR SCRIPT_NAME>?action=collection">text index</a> 
+    - <a href="?action=main">gallery latest</a>
+    - <a href="?action=main&want=1">want list</a><br><br>
 
 </div>
 
@@ -173,8 +173,8 @@ function editItem(id) {
     </form> <br>
 
 
-    <button onClick="location='?action=editCategory&title_id=<TMPL_VAR TITLE_ID>';">add title / category</button>
-    - <button onClick="location='?action=editItem&title_id=<TMPL_VAR TITLE_ID>';">add item</button><br>
+    <button onClick="location='?action=category&title_id=<TMPL_VAR TITLE_ID>';">add title / category</button>
+    - <button onClick="location='?action=item&title_id=<TMPL_VAR TITLE_ID>';">add item</button><br>
 
 </div>
 

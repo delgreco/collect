@@ -73,20 +73,68 @@ my $dbh = DBI->connect(
 ) || die "Connect failed: $DBI::errstr\n"; 
 
 my $action=$cgi->param('action');
-$action = qq {mainInterface} if ! $action;
+$action = 'main' if ! $action;
 
-# run the sub by the same name as $action
-# TODO: replace with a dispatch table
-&{\&{$action}}();
+my %dispatch = (
+    category       => \&category,
+    collection     => \&collection,
+    deleteCategory => \&deleteCategory,
+    deleteImage    => \&deleteImage,
+    deleteItem     => \&deleteItem,
+    estimateValue  => \&estimateValue,
+    item           => \&item,
+    main           => \&main,
+    saveCategory   => \&saveCategory,
+    saveImage      => \&saveImage,
+    saveItem       => \&saveItem,
+    saveCategory   => \&saveCategory,
+);
+
+if ( my $code = $dispatch{$action} ) {
+    $code->();
+}
+else {
+    die "Unknown action: $action\n";
+}
+
 exit;
 
-=head2 collectionInterface()
+=head2 category()
+
+Screen on which to edit a category /title.
+
+=cut
+
+sub category( $id = 0 ) {
+    $id = $cgi->param('id') unless $id;
+    my $t = HTML::Template->new(filename => 'templates/editCategory.tmpl');
+    my $sql = <<~"SQL";
+    SELECT * FROM titles WHERE id = ?
+    SQL
+    my $cat_ref = $dbh->selectrow_hashref($sql, undef, $id);
+    $t->param(CATEGORY => $cat_ref->{title});
+    $t->param(ID => $id);
+    $t->param(SHOW_MISSING => $cat_ref->{show_missing});
+    $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
+    $t = _getTitlesDropdown(
+        template          => $t,
+        selected_title_id => $id,
+    );
+    $t = _getTypesDropdown(
+        template      => $t,
+        selected_type => $cat_ref->{type},
+    );
+    print "Content-type: text/html\n\n";
+    print $t->output;
+}
+
+=head2 collection()
 
 Image-less view of all issues in the collection, or the "text index".
 
 =cut
 
-sub collectionInterface {
+sub collection {
     my $type = $cgi->param('type');
     my $title_id = $cgi->param('title_id');
     my $t = HTML::Template->new(filename => 'templates/collectionInterface.tmpl');
@@ -165,7 +213,7 @@ sub deleteCategory {
         $sth->execute($id);
         $message = qq |Category deleted.|;
     }
-    mainInterface( $message, $id );
+    main( $message, $id );
 }
 
 =head2 deleteImage
@@ -207,18 +255,16 @@ sub deleteImage {
         print STDERR "'$file' does not exist.\n";
     }
     my $message = qq |Image deleted.|;
-    editItem( $item_id, $issue_ref->{title_id}, $message );
+    item( $item_id, $issue_ref->{title_id}, $message );
 }
 
-=head2 deleteIssue
+=head2 deleteItem
 
-Delete an issue, given its id.
-
-Because we also have a Flickr page for the issue, send ourselves an email to remind us to delete the Flickr page manually, which cannot be easily done from here.
+Delete an item, given its id.
 
 =cut
 
-sub deleteIssue {
+sub deleteItem {
     my $id = $cgi->param('id');
     my $sql = <<~"SQL";
     SELECT * FROM items WHERE id = ?
@@ -258,45 +304,16 @@ sub deleteIssue {
     $sth = $dbh->prepare($delete);
     $sth->execute($id);
     my $message = qq |Item deleted.|;
-    mainInterface( $message, $item_ref->{title_id} );
+    main( $message, $item_ref->{title_id} );
 }
 
-=head2 editCategory()
-
-Screen on which to edit a category /title.
-
-=cut
-
-sub editCategory( $id = 0 ) {
-    $id = $cgi->param('id') unless $id;
-    my $t = HTML::Template->new(filename => 'templates/editCategory.tmpl');
-    my $sql = <<~"SQL";
-    SELECT * FROM titles WHERE id = ?
-    SQL
-    my $cat_ref = $dbh->selectrow_hashref($sql, undef, $id);
-    $t->param(CATEGORY => $cat_ref->{title});
-    $t->param(ID => $id);
-    $t->param(SHOW_MISSING => $cat_ref->{show_missing});
-    $t->param(SCRIPT_NAME => $ENV{SCRIPT_NAME});
-    $t = _getTitlesDropdown(
-        template          => $t,
-        selected_title_id => $id,
-    );
-    $t = _getTypesDropdown(
-        template      => $t,
-        selected_type => $cat_ref->{type},
-    );
-    print "Content-type: text/html\n\n";
-    print $t->output;
-}
-
-=head2 editItem($id, $title_id, $message)
+=head2 item($id, $title_id, $message)
 
 Screen on which to view/edit an item record.
 
 =cut
 
-sub editItem( $id = 0, $title_id = 0, $message = '', $shop = 0 ) {
+sub item( $id = 0, $title_id = 0, $message = '', $shop = 0 ) {
     $id = $cgi->param('id') if ! $id;
     $title_id = $cgi->param('title_id') if ! $title_id;
     $shop = $cgi->param('shop') if ! $shop;
@@ -534,36 +551,16 @@ sub estimateValue {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
     }
-    editItem( $id, '', "New estimate fetched.  \$${sign}${diff} ${sign}${perc_diff}\% change." );
+    item( $id, '', "New estimate fetched.  \$${sign}${diff} ${sign}${perc_diff}\% change." );
 }
 
-=head2 findMissing()
-
-Given an array of integers (issues, card numbers, etc.) return an array of integers missing in that sequence.
-
-=cut
-
-sub findMissing {
-    my @input = @_;
-    return () if scalar @input == 0;
-    @input = sort { $a <=> $b } @input;
-    my $min = $input[0];
-    my $max = $input[-1];
-    my %input_hash = map { $_ => 1 } @input;
-    my @missing;
-    foreach my $i ($min .. $max) {
-        push @missing, $i unless exists $input_hash{$i};
-    }
-    return @missing;
-}
-
-=head2 mainInterface($message, $title_id)
+=head2 main($message, $title_id)
 
 The main image-based view of the collection, in a grid.
 
 =cut
 
-sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
+sub main ( $message = '', $title_id = 0, $order = '' ) {
     $title_id = $cgi->param('title_id') if ! $title_id;
     $order = $cgi->param('order') || 'recent_adds' if ! $order;
     my $search=$cgi->param('search') || '';
@@ -759,7 +756,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
     $t->param(DOLLAR_TOTAL => sprintf("%.2f", $dollar_total));
     my @missing;
     if ( $title_id ) {  # look for missing if showing a single title
-        @missing = findMissing(@numbers);
+        @missing = _findMissing(@numbers);
         @missing = _collapse_series(@missing);
         $t->param(MISSING => join(", ", @missing));
     }
@@ -778,7 +775,7 @@ sub mainInterface ( $message = '', $title_id = 0, $order = '' ) {
 
 =head2 saveCategory()
 
-Add or update a category / title from L</editCategory()>.
+Add or update a category / title from L</category()>.
 
 =cut
 
@@ -800,7 +797,7 @@ sub saveCategory {
         if ( $rows_updated != 1 ) {
             $message = qq |ERROR: $rows_updated rows updated.|;
         }
-        mainInterface( "$category updated.", $id );
+        main( "$category updated.", $id );
     }
     else {
         my $sql = <<~"SQL";
@@ -818,13 +815,13 @@ sub saveCategory {
         }
         # grab the automatically incremented id that was generated
         $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
-        editItem( undef, $id, $message );
+        item( undef, $id, $message );
     }
 }
 
 =head2 saveImage()
 
-Add or update an image from L</editItem()>.
+Add or update an image from L</item()>.
 
 =cut
 
@@ -889,12 +886,12 @@ sub saveImage {
         }
         close FILE;
     }
-    editItem( $item_id, undef, $message );
+    item( $item_id, undef, $message );
 }
 
 =head2 saveItem()
 
-Add or update an issue from L</editItem()>.
+Add or update an issue from L</item()>.
 
 =cut
 
@@ -939,7 +936,7 @@ sub saveItem {
     }
     my $ungraded = 1;
     $ungraded = 0 if $grade_id;
-    editItem( $id, $cgi->param('title_id'), $message );
+    item( $id, $cgi->param('title_id'), $message );
 }
 
 =head1 INTERNAL SUBROUTINES
@@ -973,6 +970,26 @@ sub _collapse_series {
         }
     }
     return @result;
+}
+
+=head2 _findMissing()
+
+Given an array of integers (issues, card numbers, etc.) return an array of integers missing in that sequence.
+
+=cut
+
+sub _findMissing {
+    my @input = @_;
+    return () if scalar @input == 0;
+    @input = sort { $a <=> $b } @input;
+    my $min = $input[0];
+    my $max = $input[-1];
+    my %input_hash = map { $_ => 1 } @input;
+    my @missing;
+    foreach my $i ($min .. $max) {
+        push @missing, $i unless exists $input_hash{$i};
+    }
+    return @missing;
 }
 
 =head2 _getAverageYear()
