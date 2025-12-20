@@ -87,7 +87,6 @@ my %dispatch = (
     saveCategory   => \&saveCategory,
     saveImage      => \&saveImage,
     saveItem       => \&saveItem,
-    saveCategory   => \&saveCategory,
 );
 
 if ( my $code = $dispatch{$action} ) {
