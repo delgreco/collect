@@ -820,7 +820,8 @@ sub saveCategory {
 
 =head2 saveImage()
 
-Add or update an image from L</item()>.
+Add or update an image from the L</item() page.  Saves metadata to the database
+and the file to the filesystem.
 
 =cut
 
@@ -833,10 +834,11 @@ sub saveImage {
     $main = $main eq 'on' ? 1 : 0;
     $stock = $stock eq 'on' ? 1 : 0;
     my $message = '';
-    my $ext = '';
+    # get file extension
+    my $extension = '';
     if ( $cgi->param('image') ) {
         if ( $cgi->param('image') =~ m/\.(.+)$/ ) {
-            $ext = $1;
+            $extension = $1;
         }
     }
     # clear existing 'main' image if this image is set to be the main
@@ -846,6 +848,28 @@ sub saveImage {
         SQL
         my $rows_updated = $dbh->do(qq{$sql}, undef, $item_id);
     }
+    # determine if this was the 'first image' added.  If so,
+    # we consider this the addition of the actual item to the collection,
+    # not to the wish list, we update the item's 'added' time to reflect
+    my $select = <<~"SQL";
+    SELECT COUNT(*) FROM images
+    WHERE item_id = ?
+    SQL
+    my $sth = $dbh->prepare($select);
+    $sth->execute($item_id);
+    my ($num_images) = $sth->fetchrow_array();
+    if ( $num_images == 0 ) { # this will be the first image
+        # or perhaps the first image after clearing out images for the item
+        my $sql = <<~"SQL";
+        UPDATE items SET added = NOW()
+        WHERE id = ?
+        SQL
+        my $rows_updated = $dbh->do(qq{$sql}, undef);
+        if ( $rows_updated != 1 ) {
+            print STDERR "ERROR: $rows_updated rows updated.\n";
+        }
+    }
+    # save metadata
     if ( $cgi->param('id') ) {
         $id = $cgi->param('id');
         my $sql = <<~"SQL";
@@ -865,7 +889,8 @@ sub saveImage {
         VALUES 
         (?, ?, ?, ?, ?)
         SQL
-        my $rows_inserted = $dbh->do(qq{$sql}, undef, $cgi->param('notes'), $item_id, $ext, $main, $stock);
+        my $rows_inserted = $dbh->do(qq{$sql}, undef, 
+            $cgi->param('notes'), $item_id, $extension, $main, $stock);
         if ( $rows_inserted != 1 ) {
             print STDERR "ERROR: $rows_inserted rows inserted.\n";
         }
@@ -875,9 +900,11 @@ sub saveImage {
         # grab the automatically incremented id that was generated
         $id = $dbh->{mysql_insertid} || $dbh->{insertid}; 
     }
-    # NOTE: this goes after db insert so we can use the id from that for filename
+    # save the file to the filesystem
+    # NOTE: this goes after db insert to use the id from that for filename
     if ( $cgi->param('image') ) {
-        open (FILE, "> $ENV{DOCUMENT_ROOT}/images/${id}.${ext}") or die "$!";
+        open (FILE, "> $ENV{DOCUMENT_ROOT}/images/${id}.${extension}")
+            or die "$!";
         binmode FILE;
         my $image = $cgi->param('image');
         while ( <$image> ) {
