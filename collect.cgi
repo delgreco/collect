@@ -1226,19 +1226,22 @@ sub _getTitlesDropdown {
     my $selected_title_id = $arg{selected_title_id};
     my @titles;
     my $select = <<~"SQL";
-    SELECT DISTINCT title, titles.id AS the_id,
+    SELECT DISTINCT title, titles.id AS the_id, show_missing, 
     (SELECT COUNT(*) FROM items WHERE title_id = the_id)
     FROM titles 
     ORDER BY title
     SQL
     my $sth = $dbh->prepare($select);
     $sth->execute;
-    while (my ($this_title, $id, $count) = $sth->fetchrow_array()) {
+    while (my ($title, $id, $show_missing, $count) = $sth->fetchrow_array()) {
         my %row;
         if ( $selected_title_id && $selected_title_id eq $id ) {
             $row{SELECTED} = 'SELECTED';
         }
-        $row{TITLE} = $this_title;
+        if ( $show_missing ) {
+            $title = "✅ " . $title;
+        }
+        $row{TITLE} = $title;
         $row{ID} = $id;
         $row{COUNT} = $count;
         push(@titles, \%row);
