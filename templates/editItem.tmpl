@@ -18,7 +18,7 @@
 
         <br><br>
 
-        <form method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
+        <form id="item_form" method="post" enctype='multipart/form-data' action="<TMPL_VAR SCRIPT_NAME>">
 
         Title / Series / Category: <select name="title_id">
         <option value="">select title...
@@ -168,6 +168,14 @@
 <script>
 
 var images = <TMPL_VAR IMAGES_JSON>;
+
+// fire only the main submit button on Enter
+document.getElementById('item_form').addEventListener('keydown', function (e) {
+    if ( e.key === 'Enter' ) {
+        e.preventDefault();
+        this.requestSubmit();
+    }
+});
 
 function deleteImage(id) {
     const confirmed = confirm("Really delete this image?");
