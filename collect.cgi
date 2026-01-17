@@ -12,6 +12,8 @@ use 5.026;
 no warnings 'experimental::signatures';
 use feature 'signatures';
 
+use utf8;
+
 use lib qw(
     .
     local/lib/perl5
@@ -316,7 +318,10 @@ sub item( $id = 0, $title_id = 0, $message = '', $shop = 0 ) {
     $id = $cgi->param('id') if ! $id;
     $title_id = $cgi->param('title_id') if ! $title_id;
     $shop = $cgi->param('shop') if ! $shop;
-    my $t = HTML::Template->new(filename => 'templates/editItem.tmpl');
+    my $t = HTML::Template->new(
+        filename => 'templates/editItem.tmpl',
+        utf8     => 1,
+    );
     # get item
     my $sql = <<~"SQL";
     SELECT * FROM items WHERE id = ?
@@ -419,9 +424,9 @@ sub item( $id = 0, $title_id = 0, $message = '', $shop = 0 ) {
             $comic_grade_ref->{cgc_number}
         );
 
-        print STDERR "$cat_ref->{title} #$item_ref->{issue_num} $item_ref->{year}\n";
-        print STDERR "$item_ref->{value}\n"; 
-        print STDERR "$comic_grade_ref->{cgc_number}\n";
+        # print STDERR "$cat_ref->{title} #$item_ref->{issue_num} $item_ref->{year}\n";
+        # print STDERR "$item_ref->{value}\n"; 
+        # print STDERR "$comic_grade_ref->{cgc_number}\n";
 
         if ( scalar @$filtered_items ) {
             my @items;
@@ -864,7 +869,7 @@ sub saveImage {
         UPDATE items SET added = NOW()
         WHERE id = ?
         SQL
-        my $rows_updated = $dbh->do(qq{$sql}, undef);
+        my $rows_updated = $dbh->do(qq{$sql}, undef, $item_id);
         if ( $rows_updated != 1 ) {
             print STDERR "ERROR: $rows_updated rows updated.\n";
         }
