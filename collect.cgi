@@ -108,7 +108,10 @@ Screen on which to edit a category /title.
 
 sub category( $id = 0 ) {
     $id = $cgi->param('id') unless $id;
-    my $t = HTML::Template->new(filename => 'templates/editCategory.tmpl');
+    my $t = HTML::Template->new(
+        filename => 'templates/editCategory.tmpl',
+        utf8     => 1,
+    );
     my $sql = <<~"SQL";
     SELECT * FROM titles WHERE id = ?
     SQL
@@ -138,7 +141,10 @@ Image-less view of all issues in the collection, or the "text index".
 sub collection {
     my $type = $cgi->param('type');
     my $title_id = $cgi->param('title_id');
-    my $t = HTML::Template->new(filename => 'templates/collectionInterface.tmpl');
+    my $t = HTML::Template->new(
+        filename => 'templates/collectionInterface.tmpl',
+        utf8     => 1,
+    );
     my $select = <<~"SQL";
     SELECT title, id FROM titles ORDER BY title
     SQL
@@ -573,6 +579,7 @@ sub main ( $message = '', $title_id = 0, $order = '' ) {
     my $want=$cgi->param('want');
     my $t = HTML::Template->new(
         filename => 'templates/mainInterface.tmpl',
+        utf8     => 1,
     );
     my @where_conditions; my @bind_vars;
     my $limit = 50;
